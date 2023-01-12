@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(Animator), typeof(Rigidbody), typeof(Collider))]
+[RequireComponent(typeof(Rigidbody), typeof(Collider))]
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
 {
@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Physics")]
     private Rigidbody rb;
+    [SerializeField] private float jumpForce = 100f;
 
     [SerializeField] private float walkSpeed = 1;
     [SerializeField] private float sprintSpeed = 2;
@@ -36,6 +37,7 @@ public class PlayerController : MonoBehaviour
     private int jumpTriggerHash;
     private int groundedHash;
     private int hangingHash;
+    private int fallingHash;
     private int bracedHash;
 
 
@@ -46,7 +48,7 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
-        animator = GetComponent<Animator>();
+        animator = GetComponentInChildren<Animator>();
         rb = GetComponent<Rigidbody>();
 
         speedHash = Animator.StringToHash("Speed");
@@ -55,6 +57,7 @@ public class PlayerController : MonoBehaviour
         jumpTriggerHash = Animator.StringToHash("Jump");
         hangingHash = Animator.StringToHash("Hanging");
         groundedHash = Animator.StringToHash("Grounded");
+        fallingHash = Animator.StringToHash("Falling");
         //bracedHash = Animator.StringToHash("Braced");
 
         Cursor.lockState = CursorLockMode.Confined;
@@ -70,7 +73,12 @@ public class PlayerController : MonoBehaviour
             RotatePlayer();
             CheckGrounding();
         }
+    }
 
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawRay(transform.position, Vector3.down);
     }
     private void MovePlayer()
     {
@@ -90,6 +98,7 @@ public class PlayerController : MonoBehaviour
         animator.SetFloat(speedZHash, moveVector.z);
 
         transform.Translate(moveVector * Time.fixedDeltaTime * speedFactor);
+
     }
 
     private void RotatePlayer()
@@ -108,19 +117,26 @@ public class PlayerController : MonoBehaviour
             if (hit.distance < 2)
             {
                 isGrounded = true;
+                animator.SetBool(fallingHash, false);
                 animator.SetBool(groundedHash, true);
             }
             else
             {
                 isGrounded = false;
+                animator.SetBool(fallingHash, true);
                 animator.SetBool(groundedHash, false);
             }
         }
         else
         {
             isGrounded = false;
+            animator.SetBool(fallingHash, true);
             animator.SetBool(groundedHash, false);
         }
+    }
+    public void Jump()
+    {
+        rb.AddForce(transform.up * jumpForce, ForceMode.VelocityChange);
     }
 
     private void OnMove(InputValue value)
@@ -132,4 +148,12 @@ public class PlayerController : MonoBehaviour
     {
         sprinting = value.isPressed;
     }
+    private void OnJump(InputValue value)
+    {
+        if(isGrounded)
+        {
+            animator.SetTrigger(jumpTriggerHash);
+        }
+    }
+    
 }
