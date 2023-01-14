@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,39 +8,34 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private Camera mainCamera;
+    public static event Action OnDropPressed;
+    public static event Action OnDropped;
 
+    #region Physic Related
     [Header("Physics")]
-    private Rigidbody rb;
     [SerializeField] private float jumpForce = 100f;
+    [SerializeField] private float fallingVelocityThreshold;
 
     [SerializeField] private float walkSpeed = 1;
     [SerializeField] private float sprintSpeed = 2;
 
-    [SerializeField] private bool isGrounded = true;
-    [SerializeField] private bool isHanging = false;
-    [SerializeField] private bool sprinting = false;
+    public bool isGrounded = true;
+    public bool isFalling = false;
+    public bool isHanging = false;
+    public bool sprinting = false;
     
+    private Rigidbody rb;
     private Vector3 moveVector;
-
+    public Vector3 jumpPoint;
+    #endregion
     #region Utility
     [Header("Utility")]
+    [SerializeField] private Camera mainCamera;
     [SerializeField] private LayerMask walkableLayers;
 
     #endregion
-
     #region Animator Related
     private Animator animator;
-
-    private int speedHash;
-    private int speedXHash;
-    private int speedZHash;
-    private int jumpTriggerHash;
-    private int groundedHash;
-    private int hangingHash;
-    private int fallingHash;
-    private int bracedHash;
-
 
     private float targetX;
     private float targetZ;
@@ -48,17 +44,17 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
-        animator = GetComponentInChildren<Animator>();
+        animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
-
-        speedHash = Animator.StringToHash("Speed");
-        speedXHash = Animator.StringToHash("SpeedX");
-        speedZHash = Animator.StringToHash("SpeedZ");
-        jumpTriggerHash = Animator.StringToHash("Jump");
-        hangingHash = Animator.StringToHash("Hanging");
-        groundedHash = Animator.StringToHash("Grounded");
-        fallingHash = Animator.StringToHash("Falling");
-        //bracedHash = Animator.StringToHash("Braced");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Speed,      "Speed");
+        HashManager.AddToAnimatorHash(AnimatorVariables.SpeedX,     "SpeedX");
+        HashManager.AddToAnimatorHash(AnimatorVariables.SpeedZ,     "SpeedZ");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Jump,       "Jump");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Hang,       "Hanging");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Grounded,   "Grounded");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Falling,    "Falling");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Braced,     "Braced");
+        HashManager.AddToAnimatorHash(AnimatorVariables.ClimbOver,  "Climb Over");
 
         Cursor.lockState = CursorLockMode.Confined;
         Cursor.visible = false;
@@ -66,13 +62,16 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        Cursor.visible = false;
         if (isHanging == false)
         {
             MovePlayer();
             RotatePlayer();
-            CheckGrounding();
         }
+        CheckInAirState();
+    }
+    private void Update()
+    {
+        Cursor.visible = false;
     }
 
     private void OnDrawGizmos()
@@ -93,9 +92,9 @@ public class PlayerController : MonoBehaviour
         moveVector.x = Mathf.Lerp(moveVector.x, targetX * speedFactor, Time.deltaTime * 3);
         moveVector.z = Mathf.Lerp(moveVector.z, targetZ * speedFactor, Time.deltaTime * 3);
 
-        animator.SetFloat(speedHash, speedFactor);
-        animator.SetFloat(speedXHash, moveVector.x);
-        animator.SetFloat(speedZHash, moveVector.z);
+        animator.SetFloat(HashManager.animatorHashDict[AnimatorVariables.Speed], speedFactor);
+        animator.SetFloat(HashManager.animatorHashDict[AnimatorVariables.SpeedX], moveVector.x);
+        animator.SetFloat(HashManager.animatorHashDict[AnimatorVariables.SpeedZ], moveVector.z);
 
         transform.Translate(moveVector * Time.fixedDeltaTime * speedFactor);
 
@@ -110,35 +109,46 @@ public class PlayerController : MonoBehaviour
             transform.forward = Vector3.Lerp(transform.forward, rotationVector, Time.deltaTime);
         }
     }
-    private void CheckGrounding()
+    private void CheckInAirState()
     {
         if (Physics.Raycast(transform.position + Vector3.up, Vector3.down, out RaycastHit hit, 5f, walkableLayers))
         {
-            if (hit.distance < 2)
+            if (hit.distance < 1.1f)
             {
                 isGrounded = true;
-                animator.SetBool(fallingHash, false);
-                animator.SetBool(groundedHash, true);
+                animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Grounded], true);
+                OnDropped.Invoke();
             }
             else
             {
                 isGrounded = false;
-                animator.SetBool(fallingHash, true);
-                animator.SetBool(groundedHash, false);
+                animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Grounded], false);
             }
         }
         else
         {
             isGrounded = false;
-            animator.SetBool(fallingHash, true);
-            animator.SetBool(groundedHash, false);
+            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Grounded], false);
+        }
+
+        if(rb.velocity.y < fallingVelocityThreshold)
+        {
+            isFalling = true;
+            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], true);
+        }
+        else
+        {
+            isFalling = false;
+            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], false);
         }
     }
     public void Jump()
     {
+        jumpPoint = transform.position;
         rb.AddForce(transform.up * jumpForce, ForceMode.VelocityChange);
     }
-
+    
+    #region Events
     private void OnMove(InputValue value)
     {
         targetX = value.Get<Vector2>().x;
@@ -152,8 +162,20 @@ public class PlayerController : MonoBehaviour
     {
         if(isGrounded)
         {
-            animator.SetTrigger(jumpTriggerHash);
+            animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Jump]);
         }
     }
-    
+
+    private void OnDrop(InputValue value)
+    {
+        if (isHanging)
+        {
+            OnDropPressed.Invoke();
+            rb.AddForce(-transform.forward * jumpForce * 10, ForceMode.VelocityChange);
+            
+
+        }
+
+    }
+    #endregion
 }
