@@ -14,7 +14,7 @@ public class PlayerController : MonoBehaviour
     #region Physic Related
     [Header("Physics")]
     [SerializeField] private float jumpForce = 100f;
-    [SerializeField] private float fallingVelocityThreshold;
+    [SerializeField] private float fallingHeightThreshold;
 
     [SerializeField] private float walkSpeed = 1;
     [SerializeField] private float sprintSpeed = 2;
@@ -46,16 +46,21 @@ public class PlayerController : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
-        HashManager.AddToAnimatorHash(AnimatorVariables.Speed,      "Speed");
-        HashManager.AddToAnimatorHash(AnimatorVariables.SpeedX,     "SpeedX");
-        HashManager.AddToAnimatorHash(AnimatorVariables.SpeedZ,     "SpeedZ");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Jump,       "Jump");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Hang,       "Hanging");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Grounded,   "Grounded");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Falling,    "Falling");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Braced,     "Braced");
-        HashManager.AddToAnimatorHash(AnimatorVariables.ClimbOver,  "Climb Over");
-
+        #region HashList
+        HashManager.AddToAnimatorHash(AnimatorVariables.Speed,                    "Speed");
+        HashManager.AddToAnimatorHash(AnimatorVariables.SpeedX,                   "SpeedX");
+        HashManager.AddToAnimatorHash(AnimatorVariables.SpeedZ,                   "SpeedZ");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Jump,                     "Jump");
+        HashManager.AddToAnimatorHash(AnimatorVariables.FallingHang,              "Falling Hang");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Grounded,                 "Grounded");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Falling,                  "Falling");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Braced,                   "Braced");
+        HashManager.AddToAnimatorHash(AnimatorVariables.Drop,                     "Drop");
+        HashManager.AddToAnimatorHash(AnimatorVariables.ClimbOver,                "Climb Over");
+        HashManager.AddToAnimatorHash(AnimatorVariables.ClimbingOverState,        "Climbing Over");
+        HashManager.AddToAnimatorHash(AnimatorVariables.HangingIdleState,         "Hanging Blend Tree");
+        HashManager.AddToAnimatorHash(AnimatorVariables.FallingToBracedHangState, "Falling To Braced Hang");
+        #endregion
         Cursor.lockState = CursorLockMode.Confined;
         Cursor.visible = false;
     }
@@ -111,7 +116,8 @@ public class PlayerController : MonoBehaviour
     }
     private void CheckInAirState()
     {
-        if (Physics.Raycast(transform.position + Vector3.up, Vector3.down, out RaycastHit hit, 5f, walkableLayers))
+        rb.velocity = new Vector3(0, rb.velocity.y, 0);
+        if (Physics.SphereCast(transform.position + Vector3.up, 0.4f, Vector3.down, out RaycastHit hit, 5f, walkableLayers))
         {
             if (hit.distance < 1.1f)
             {
@@ -124,22 +130,25 @@ public class PlayerController : MonoBehaviour
                 isGrounded = false;
                 animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Grounded], false);
             }
+
+            if (hit.distance > fallingHeightThreshold)
+            {
+                isFalling = true;
+                animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], true);
+            }
+            else
+            {
+                isFalling = false;
+                animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], false);
+            }
         }
         else
         {
             isGrounded = false;
             animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Grounded], false);
-        }
 
-        if(rb.velocity.y < fallingVelocityThreshold)
-        {
             isFalling = true;
             animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], true);
-        }
-        else
-        {
-            isFalling = false;
-            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], false);
         }
     }
     public void Jump()
@@ -160,7 +169,7 @@ public class PlayerController : MonoBehaviour
     }
     private void OnJump(InputValue value)
     {
-        if(isGrounded)
+        if(isGrounded && value.isPressed)
         {
             animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Jump]);
         }
@@ -171,11 +180,8 @@ public class PlayerController : MonoBehaviour
         if (isHanging)
         {
             OnDropPressed.Invoke();
-            rb.AddForce(-transform.forward * jumpForce * 10, ForceMode.VelocityChange);
-            
-
+            //rb.AddForce(-transform.forward * jumpForce * 10, ForceMode.VelocityChange);
         }
-
     }
     #endregion
 }

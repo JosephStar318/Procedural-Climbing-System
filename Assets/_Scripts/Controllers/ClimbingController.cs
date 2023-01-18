@@ -10,6 +10,7 @@ public class ClimbingController : MonoBehaviour
     private Animator animator;
     private PlayerController playerController;
     private Rigidbody rb;
+    private CapsuleCollider capsuleCollider;
 
     private Vector3 moveVector;
     private float targetX;
@@ -30,14 +31,15 @@ public class ClimbingController : MonoBehaviour
     [SerializeField] private Vector3 climbOriginDown;
     [SerializeField] private float minStepHeight;
     [SerializeField] private Vector3 endOffset;
+    [SerializeField] private Vector3 hangOffset;
 
     private Vector3 endPosition;
     private Quaternion forwardNormalXZRotation;
     private Vector3 matchTargetPosition;
     private Quaternion matchTargetRotation;
     private MatchTargetWeightMask weightMask = new MatchTargetWeightMask(Vector3.one, 1);
-    private Vector3 hangOffset;
-
+    private float startNormalizedTime;
+    private float targetNormalizedTime;
 
     private float hangTimeout = 0;
 
@@ -46,22 +48,31 @@ public class ClimbingController : MonoBehaviour
     {
         PlayerController.OnDropPressed += OnDropPressed;
         PlayerController.OnDropped += OnDropped;
+        SMBEvent.OnSMBEvent += OnSMBEvent;
     }
     private void OnDisable()
     {
         PlayerController.OnDropPressed -= OnDropPressed;
         PlayerController.OnDropped -= OnDropped;
+        SMBEvent.OnSMBEvent -= OnSMBEvent;
     }
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.blue;
         Gizmos.DrawSphere(endPosition, 0.1f);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawSphere(downCastHit.point, 0.1f);
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(forwardCastHit.point, 0.1f);
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(matchTargetPosition, 0.1f);
     }
     private void Start()
     {
         animator = GetComponent<Animator>();
         playerController = GetComponent<PlayerController>();
         rb = GetComponent<Rigidbody>();
+        capsuleCollider = GetComponent<CapsuleCollider>();
     }
    
     private void FixedUpdate()
@@ -76,13 +87,7 @@ public class ClimbingController : MonoBehaviour
             float jumpHeight = 0;
             if(playerController.isFalling)
             {
-                float groundDistance;
-                if(Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 100f, climbableLayers))
-                {
-                    groundDistance = hit.distance;
-                    jumpHeight = groundDistance - downCastHit.point.y + climbOriginDown.y;
-                }
-                if(jumpHeight > vaultHeight)
+                if(transform.position.y + vaultHeight/2 < downCastHit.point.y)
                 {
                     Hang();
                     if (GlobalSettings.Instance.debugMode) Debug.Log("Hanging while falling");
@@ -91,7 +96,7 @@ public class ClimbingController : MonoBehaviour
             else if(playerController.isGrounded == false)
             {
                 jumpHeight = downCastHit.point.y - playerController.jumpPoint.y;
-                if(jumpHeight > vaultHeight && jumpHeight <= hangHeight)
+                if(jumpHeight > vaultHeight && jumpHeight <= hangHeight && Vector3.Distance(transform.position,downCastHit.point) < 1.8f)
                 {
                     Hang();
                     if (GlobalSettings.Instance.debugMode) Debug.Log("Hanging");
@@ -109,15 +114,32 @@ public class ClimbingController : MonoBehaviour
             }
         }
     }
+    private void OnAnimatorMove()
+    {
+        if (animator.isMatchingTarget)
+            animator.ApplyBuiltinRootMotion();
+    }
 
     private void Vault()
     {
         hangTimeout = 1f;
+
+        matchTargetPosition = endPosition;
+        matchTargetRotation = forwardNormalXZRotation;
+
+        //animator.setbool
     }
 
     private void Hang()
     {
-        animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Hang], true);
+        Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
+        forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
+
+        matchTargetPosition = forwardCastHit.point + forwardNormalXZRotation * hangOffset;
+        matchTargetRotation = forwardNormalXZRotation;
+
+        animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.FallingHang]);
+
         playerController.isHanging = true;
         rb.useGravity = false;
         rb.velocity = Vector3.zero;
@@ -141,19 +163,23 @@ public class ClimbingController : MonoBehaviour
         {
             if (CanClimbOver() == true)
             {
-                animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.ClimbOver]);
-
-                Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
-                forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
-
-                matchTargetPosition = forwardCastHit.point + forwardNormalXZRotation * hangOffset;
-                matchTargetRotation = forwardNormalXZRotation;
+                Debug.Log("can climb over");
+                //ClimbOver();
             }
             else
             {
-
+                Debug.Log("can't climb over");
             }
         }
+    }
+
+    private void ClimbOver()
+    {
+        matchTargetPosition = endPosition;
+        matchTargetRotation = forwardNormalXZRotation;
+        playerController.isHanging = false;
+        Debug.Log("climbing over..");
+        animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.ClimbOver]);
     }
 
     private bool CanClimb()
@@ -193,6 +219,20 @@ public class ClimbingController : MonoBehaviour
                     {
                         Vector3 vectSurface = Vector3.ProjectOnPlane(forwardDirectionXZ, downCastHit.normal);
                         endPosition = downCastHit.point + Quaternion.LookRotation(vectSurface, Vector3.up) * endOffset;
+
+                        Collider colliderLedge = downCastHit.collider;
+                        bool penetrationOverlap = Physics.ComputePenetration(
+                            colliderA: capsuleCollider,
+                            positionA: endPosition,
+                            rotationA: transform.rotation,
+                            colliderB: colliderLedge,
+                            positionB: colliderLedge.transform.position,
+                            rotationB: colliderLedge.transform.rotation,
+                            direction: out Vector3 penetrationDirection,
+                            distance: out float penetrationDistance
+                            );
+                        if (penetrationOverlap)
+                            endPosition += penetrationDirection * penetrationDistance;
                         return true;
                     }
                 }
@@ -203,8 +243,58 @@ public class ClimbingController : MonoBehaviour
 
     private bool CanClimbOver()
     {
+        float inflate = -0.05f;
+        float upsweepDistance = downCastHit.point.y - transform.position.y;
+        Vector3 upSweepDirection = transform.up;
+        Vector3 upSweepOrigin = transform.position;
+        bool upSweepHit = CharacterSweep(
+            position: upSweepOrigin,
+            rotation: transform.rotation,
+            direction: upSweepDirection,
+            distance: upsweepDistance,
+            layerMask: climbableLayers,
+            inflate: inflate
+            );
 
+        Vector3 forwardSweepOrigin = transform.position + upSweepDirection * upsweepDistance;
+        Vector3 forwardSweepVector = endPosition - forwardSweepOrigin;
+        bool forwardSweepHit = CharacterSweep(
+                position: forwardSweepOrigin,
+                rotation: transform.rotation,
+                direction: forwardSweepVector.normalized,
+                distance: forwardSweepVector.magnitude,
+                layerMask: climbableLayers,
+                inflate: inflate
+            );
+        if(!upSweepHit && !forwardSweepHit)
+        {
+            return true;
+        }
         return false;
+    }
+
+    private bool CharacterSweep(Vector3 position, Quaternion rotation, Vector3 direction, float distance, LayerMask layerMask, float inflate)
+    {
+        float heightScale = Mathf.Abs(transform.lossyScale.y);
+        float radiusScale = Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z));
+
+        float radius = capsuleCollider.radius * radiusScale;
+        float totalHeight = Mathf.Max(capsuleCollider.height * heightScale, radius * 2);
+
+        Vector3 capsuleUp = rotation * Vector3.up;
+        Vector3 center = position + rotation * capsuleCollider.center;
+        Vector3 top = center + capsuleUp * (totalHeight / 2 - radius);
+        Vector3 bottom = center - capsuleUp * (totalHeight / 2 - radius);
+
+        bool sweepHit = Physics.CapsuleCast(
+                point1: bottom,
+                point2: top,
+                radius: radius + inflate,
+                direction: direction,
+                maxDistance: distance,
+                layerMask: layerMask
+            );
+        return sweepHit;
     }
     #region Events
     private void OnMove(InputValue value)
@@ -217,25 +307,62 @@ public class ClimbingController : MonoBehaviour
     {
         jumpButtonPressed = value.isPressed;
     }
-
-    private void OnClimbingStart(Vector3 target, Vector3 forward)
-    {
-        Hang();
-        playerController.transform.position = target;
-        playerController.transform.forward = forward;
-        //StartCoroutine(rb.ChangeRbPositionUntil(target, 1f));
-    }
     private void OnDropPressed()
     {
-        animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Hang], false);
+        animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Drop]);
+
         playerController.isHanging = false;
         rb.useGravity = true;
+        rb.isKinematic = false;
 
         hangTimeout = 1f;
     }
     private void OnDropped()
     {
     }
+    private void OnSMBEvent(AnimatorStateInfo asInfo, AnimatorState animatorState)
+    {
 
+        if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.FallingToBracedHangState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                rb.isKinematic = true;
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+
+                startNormalizedTime = 0;
+                targetNormalizedTime = 0.25f;
+                animator.MatchTarget(matchTargetPosition, matchTargetRotation, AvatarTarget.Root, weightMask, startNormalizedTime, targetNormalizedTime);
+                rb.velocity = Vector3.zero;
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.ClimbingOverState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+                startNormalizedTime = 0.3f;
+                targetNormalizedTime = 0.8f;
+                animator.MatchTarget(matchTargetPosition, matchTargetRotation, AvatarTarget.Root, weightMask, startNormalizedTime, targetNormalizedTime);
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+                rb.isKinematic = false;
+            }
+        }
+    }
     #endregion
 }

@@ -21,9 +21,13 @@ public enum AnimatorVariables
     SpeedX,
     SpeedZ,
     Jump,
-    Hang,
+    FallingHang,
     Grounded,
     Falling,
     Braced,
-    ClimbOver
+    ClimbOver,
+    Drop,
+    HangingIdleState,
+    ClimbingOverState,
+    FallingToBracedHangState
 }
