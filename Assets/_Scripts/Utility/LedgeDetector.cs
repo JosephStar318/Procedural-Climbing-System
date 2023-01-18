@@ -56,26 +56,6 @@ public class LedgeDetector : MonoBehaviour
     {
         
 
-        //headRayDirection = playerController.transform.position - headRay.position;
-        //sideRayDirection = sideRay.forward;
-        //if (playerController.isGrounded == false)
-        //{
-        //    if(Physics.Raycast(headRay.position, headRayDirection, out RaycastHit hit, 1f, climbableLayers))
-        //    {
-        //        if(Vector3.Dot(hit.normal,Vector3.up) > 0)
-        //        {
-        //            if (Physics.Raycast(sideRay.position, sideRayDirection, out RaycastHit sidehit, 1f, climbableLayers))
-        //            {
-        //                lastLedge = hit.transform;
-        //                ledgeGrabbingPoint = new Vector3(sidehit.point.x, hit.point.y, sidehit.point.z);
-        //                OnClimbingStart.Invoke(
-        //                    transform.TransformPoint(transform.InverseTransformPoint(ledgeGrabbingPoint) - ledgeOffset),
-        //                    -sidehit.normal
-        //                    );
-        //            }
-        //        }
-        //    }
-        //}
     }
 
    

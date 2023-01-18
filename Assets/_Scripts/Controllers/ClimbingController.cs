@@ -21,17 +21,17 @@ public class ClimbingController : MonoBehaviour
     private RaycastHit forwardCastHit;
     
     [Header("Climb Settings")]
-    [SerializeField] private float wallAngleMax;
-    [SerializeField] private float groundAngleMax;
+    [SerializeField] private float wallAngleMax = 45f;
+    [SerializeField] private float groundAngleMax = 45f;
     [SerializeField] private LayerMask climbableLayers;
 
-    [SerializeField] private float stepHeight;
-    [SerializeField] private float vaultHeight;
-    [SerializeField] private float hangHeight;
-    [SerializeField] private Vector3 climbOriginDown;
-    [SerializeField] private float minStepHeight;
-    [SerializeField] private Vector3 endOffset;
-    [SerializeField] private Vector3 hangOffset;
+    [SerializeField] private float stepHeight = 0.5f;
+    [SerializeField] private float vaultHeight = 2f;
+    [SerializeField] private float hangHeight = 2.5f;
+    [SerializeField] private Vector3 climbOriginDown = new Vector3(0, 2, 0.75f);
+    [SerializeField] private float minStepHeight = 0;
+    [SerializeField] private Vector3 endOffset = Vector3.zero;
+    [SerializeField] private Vector3 hangOffset = new Vector3(0, -1.75f, -0.3f);
 
     private Vector3 endPosition;
     private Quaternion forwardNormalXZRotation;
@@ -47,13 +47,11 @@ public class ClimbingController : MonoBehaviour
     private void OnEnable()
     {
         PlayerController.OnDropPressed += OnDropPressed;
-        PlayerController.OnDropped += OnDropped;
         SMBEvent.OnSMBEvent += OnSMBEvent;
     }
     private void OnDisable()
     {
         PlayerController.OnDropPressed -= OnDropPressed;
-        PlayerController.OnDropped -= OnDropped;
         SMBEvent.OnSMBEvent -= OnSMBEvent;
     }
     private void OnDrawGizmos()
@@ -78,14 +76,14 @@ public class ClimbingController : MonoBehaviour
     private void FixedUpdate()
     {
         hangTimeout -= Time.fixedDeltaTime;
-        if (playerController.isHanging)
+        if (playerController.IsHanging)
         {
             ClimbMovement();
         }
         else if(CanClimb() == true)
         {
             float jumpHeight = 0;
-            if(playerController.isFalling)
+            if(playerController.IsFalling)
             {
                 if(transform.position.y + vaultHeight/2 < downCastHit.point.y)
                 {
@@ -93,10 +91,10 @@ public class ClimbingController : MonoBehaviour
                     if (GlobalSettings.Instance.debugMode) Debug.Log("Hanging while falling");
                 }
             }
-            else if(playerController.isGrounded == false)
+            else if(playerController.IsGrounded == false)
             {
                 jumpHeight = downCastHit.point.y - playerController.jumpPoint.y;
-                if(jumpHeight > vaultHeight && jumpHeight <= hangHeight && Vector3.Distance(transform.position,downCastHit.point) < 1.8f)
+                if(jumpHeight > vaultHeight && jumpHeight <= hangHeight && transform.position.y + vaultHeight / 2 < downCastHit.point.y)
                 {
                     Hang();
                     if (GlobalSettings.Instance.debugMode) Debug.Log("Hanging");
@@ -120,6 +118,9 @@ public class ClimbingController : MonoBehaviour
             animator.ApplyBuiltinRootMotion();
     }
 
+    ///<summary>
+    /// Plays the Vaulting animation
+    ///</summary>
     private void Vault()
     {
         hangTimeout = 1f;
@@ -130,6 +131,9 @@ public class ClimbingController : MonoBehaviour
         //animator.setbool
     }
 
+    ///<summary>
+    /// Plays the hanging animation
+    ///</summary>
     private void Hang()
     {
         Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
@@ -140,12 +144,15 @@ public class ClimbingController : MonoBehaviour
 
         animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.FallingHang]);
 
-        playerController.isHanging = true;
+        playerController.IsHanging = true;
         rb.useGravity = false;
         rb.velocity = Vector3.zero;
         hangTimeout = 1f;
     }
 
+    ///<summary>
+    /// Moves the player while hanging
+    ///</summary>
     private void ClimbMovement()
     {
         moveVector.x = Mathf.Lerp(moveVector.x, targetX, Time.deltaTime * 3);
@@ -173,15 +180,22 @@ public class ClimbingController : MonoBehaviour
         }
     }
 
+    ///<summary>
+    /// Plays the ClimbOver animation
+    ///</summary>
     private void ClimbOver()
     {
         matchTargetPosition = endPosition;
         matchTargetRotation = forwardNormalXZRotation;
-        playerController.isHanging = false;
+        playerController.IsHanging = false;
         Debug.Log("climbing over..");
         animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.ClimbOver]);
     }
 
+    ///<summary>
+    /// Detects the ledge if its climbable.
+    /// If ledge is detected returns true
+    ///</summary>
     private bool CanClimb()
     {
         bool downHit;
@@ -241,6 +255,10 @@ public class ClimbingController : MonoBehaviour
         return false;
     }
 
+    ///<summary>
+    /// Checks if the player can climb over. 
+    /// If there is enough space over the ledge returns true
+    ///</summary>
     private bool CanClimbOver()
     {
         float inflate = -0.05f;
@@ -273,6 +291,11 @@ public class ClimbingController : MonoBehaviour
         return false;
     }
 
+
+    ///<summary>
+    /// Checks if the route to the climbover end point.
+    /// If there is obstacle in the way returns false.
+    ///</summary>
     private bool CharacterSweep(Vector3 position, Quaternion rotation, Vector3 direction, float distance, LayerMask layerMask, float inflate)
     {
         float heightScale = Mathf.Abs(transform.lossyScale.y);
@@ -297,29 +320,41 @@ public class ClimbingController : MonoBehaviour
         return sweepHit;
     }
     #region Events
+
+    ///<summary>
+    /// Triggered when the input for move vector is changed
+    ///</summary>
     private void OnMove(InputValue value)
     {
         targetX = value.Get<Vector2>().x;
         targetY = value.Get<Vector2>().y;
     }
 
+    ///<summary>
+    /// Triggered when the input for jump key changed
+    ///</summary>
     private void OnJump(InputValue value)
     {
         jumpButtonPressed = value.isPressed;
     }
+
+    ///<summary>
+    /// Triggered when the input for drop key pressed
+    ///</summary>
     private void OnDropPressed()
     {
         animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Drop]);
 
-        playerController.isHanging = false;
+        playerController.IsHanging = false;
         rb.useGravity = true;
         rb.isKinematic = false;
 
         hangTimeout = 1f;
     }
-    private void OnDropped()
-    {
-    }
+
+    ///<summary>
+    /// State machine behaivor events.
+    ///</summary>
     private void OnSMBEvent(AnimatorStateInfo asInfo, AnimatorState animatorState)
     {
 

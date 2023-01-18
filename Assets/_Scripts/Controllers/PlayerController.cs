@@ -14,16 +14,17 @@ public class PlayerController : MonoBehaviour
     #region Physic Related
     [Header("Physics")]
     [SerializeField] private float jumpForce = 100f;
-    [SerializeField] private float fallingHeightThreshold;
+    [SerializeField] private float fallingHeightThreshold = 2f;
+    [SerializeField] private float groundingHeightThreshold = 1.1f;
 
     [SerializeField] private float walkSpeed = 1;
     [SerializeField] private float sprintSpeed = 2;
 
-    public bool isGrounded = true;
-    public bool isFalling = false;
-    public bool isHanging = false;
-    public bool sprinting = false;
-    
+    [SerializeField] private bool isGrounded = true;
+    [SerializeField] private bool isFalling = false;
+    [SerializeField] private bool isHanging = false;
+    [SerializeField] private bool sprinting = false;
+
     private Rigidbody rb;
     private Vector3 moveVector;
     public Vector3 jumpPoint;
@@ -40,7 +41,24 @@ public class PlayerController : MonoBehaviour
     private float targetX;
     private float targetZ;
     private float speedFactor;
+
     #endregion
+    public bool IsGrounded { get => isGrounded; 
+        private set 
+        {
+            isGrounded = value;
+            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Grounded], value);
+        }
+    }
+    public bool IsFalling { get => isFalling; 
+        private set 
+        {
+            isFalling = value;
+            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], value);
+        }
+    }
+    public bool IsHanging { get => isHanging; set => isHanging = value; }
+    public bool Sprinting { get => sprinting; private set => sprinting = value; }
 
     private void Start()
     {
@@ -67,7 +85,7 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (isHanging == false)
+        if (IsHanging == false)
         {
             MovePlayer();
             RotatePlayer();
@@ -84,9 +102,13 @@ public class PlayerController : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawRay(transform.position, Vector3.down);
     }
+
+    ///<summary>
+    /// Moves the player
+    ///</summary>
     private void MovePlayer()
     {
-        if (sprinting)
+        if (Sprinting)
         {
             speedFactor = Mathf.Lerp(speedFactor, sprintSpeed, Time.deltaTime * 3);
         }
@@ -105,6 +127,9 @@ public class PlayerController : MonoBehaviour
 
     }
 
+    ///<summary>
+    /// Rotates player based on camera angle if the player is moving
+    ///</summary>
     private void RotatePlayer()
     {
         if (moveVector.magnitude > 0.5f)
@@ -114,70 +139,85 @@ public class PlayerController : MonoBehaviour
             transform.forward = Vector3.Lerp(transform.forward, rotationVector, Time.deltaTime);
         }
     }
+    ///<summary>
+    /// Checks if player is grounded and falling
+    ///</summary>
     private void CheckInAirState()
     {
         rb.velocity = new Vector3(0, rb.velocity.y, 0);
         if (Physics.SphereCast(transform.position + Vector3.up, 0.4f, Vector3.down, out RaycastHit hit, 5f, walkableLayers))
         {
-            if (hit.distance < 1.1f)
+            if (hit.distance < groundingHeightThreshold)
             {
-                isGrounded = true;
-                animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Grounded], true);
-                OnDropped.Invoke();
+                IsGrounded = true;
+                OnDropped?.Invoke();
             }
             else
             {
-                isGrounded = false;
-                animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Grounded], false);
+                IsGrounded = false;
             }
 
             if (hit.distance > fallingHeightThreshold)
             {
-                isFalling = true;
-                animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], true);
+                IsFalling = true;
             }
             else
             {
-                isFalling = false;
-                animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], false);
+                IsFalling = false;
             }
         }
         else
         {
-            isGrounded = false;
-            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Grounded], false);
-
-            isFalling = true;
-            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Falling], true);
+            IsGrounded = false;
+            IsFalling = true;
         }
     }
+
+     ///<summary>
+     /// Jumps the player by jumpForce
+     ///</summary>
     public void Jump()
     {
         jumpPoint = transform.position;
         rb.AddForce(transform.up * jumpForce, ForceMode.VelocityChange);
     }
-    
+
     #region Events
+
+    ///<summary>
+    /// Triggered when input for movement vector is changed
+    ///</summary>
     private void OnMove(InputValue value)
     {
         targetX = value.Get<Vector2>().x;
         targetZ = value.Get<Vector2>().y;
     }
+
+    ///<summary>
+    /// Triggered when input for sprint key is changed
+    ///</summary>
     private void OnSprint(InputValue value)
     {
-        sprinting = value.isPressed;
+        Sprinting = value.isPressed;
     }
+
+    ///<summary>
+    /// Triggered when input for jump key is changed
+    ///</summary>
     private void OnJump(InputValue value)
     {
-        if(isGrounded && value.isPressed)
+        if(IsGrounded && value.isPressed)
         {
             animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Jump]);
         }
     }
 
+    ///<summary>
+    /// Triggered when input for drop key is changed
+    ///</summary>
     private void OnDrop(InputValue value)
     {
-        if (isHanging)
+        if (IsHanging)
         {
             OnDropPressed.Invoke();
             //rb.AddForce(-transform.forward * jumpForce * 10, ForceMode.VelocityChange);
