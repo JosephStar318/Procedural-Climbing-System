@@ -3,13 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Interactions;
 
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
 {
     public static event Action OnDropPressed;
-    public static event Action OnDropped;
 
     #region Physic Related
     [Header("Physics")]
@@ -29,12 +29,14 @@ public class PlayerController : MonoBehaviour
     private Vector3 moveVector;
     public Vector3 jumpPoint;
     #endregion
+
     #region Utility
     [Header("Utility")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private LayerMask walkableLayers;
 
     #endregion
+
     #region Animator Related
     private Animator animator;
 
@@ -43,6 +45,7 @@ public class PlayerController : MonoBehaviour
     private float speedFactor;
 
     #endregion
+
     public bool IsGrounded { get => isGrounded; 
         private set 
         {
@@ -59,33 +62,35 @@ public class PlayerController : MonoBehaviour
     }
     public bool IsHanging { get => isHanging; set => isHanging = value; }
     public bool Sprinting { get => sprinting; private set => sprinting = value; }
+    public bool IsPlayerEnabled { get; private set; }
+
+    private void OnEnable()
+    {
+        PlayerInputHelper.OnJump += OnJump;
+        PlayerInputHelper.OnDrop += OnDrop;
+        PlayerInputHelper.OnMove += OnMove;
+        PlayerInputHelper.OnSprint += OnSprint;
+    }
+    private void OnDisable()
+    {
+        PlayerInputHelper.OnJump -= OnJump;
+        PlayerInputHelper.OnDrop -= OnDrop;
+        PlayerInputHelper.OnMove -= OnMove;
+        PlayerInputHelper.OnSprint -= OnSprint;
+    }
 
     private void Start()
     {
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
-        #region HashList
-        HashManager.AddToAnimatorHash(AnimatorVariables.Speed,                    "Speed");
-        HashManager.AddToAnimatorHash(AnimatorVariables.SpeedX,                   "SpeedX");
-        HashManager.AddToAnimatorHash(AnimatorVariables.SpeedZ,                   "SpeedZ");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Jump,                     "Jump");
-        HashManager.AddToAnimatorHash(AnimatorVariables.FallingHang,              "Falling Hang");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Grounded,                 "Grounded");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Falling,                  "Falling");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Braced,                   "Braced");
-        HashManager.AddToAnimatorHash(AnimatorVariables.Drop,                     "Drop");
-        HashManager.AddToAnimatorHash(AnimatorVariables.ClimbOver,                "Climb Over");
-        HashManager.AddToAnimatorHash(AnimatorVariables.ClimbingOverState,        "Climbing Over");
-        HashManager.AddToAnimatorHash(AnimatorVariables.HangingIdleState,         "Hanging Blend Tree");
-        HashManager.AddToAnimatorHash(AnimatorVariables.FallingToBracedHangState, "Falling To Braced Hang");
-        #endregion
+        IsPlayerEnabled = true;
         Cursor.lockState = CursorLockMode.Confined;
         Cursor.visible = false;
     }
 
     private void FixedUpdate()
     {
-        if (IsHanging == false)
+        if (IsHanging == false && IsPlayerEnabled)
         {
             MovePlayer();
             RotatePlayer();
@@ -144,13 +149,11 @@ public class PlayerController : MonoBehaviour
     ///</summary>
     private void CheckInAirState()
     {
-        rb.velocity = new Vector3(0, rb.velocity.y, 0);
         if (Physics.SphereCast(transform.position + Vector3.up, 0.4f, Vector3.down, out RaycastHit hit, 5f, walkableLayers))
         {
             if (hit.distance < groundingHeightThreshold)
             {
                 IsGrounded = true;
-                OnDropped?.Invoke();
             }
             else
             {
@@ -173,54 +176,83 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-     ///<summary>
-     /// Jumps the player by jumpForce
-     ///</summary>
+    /// <summary>
+    /// Triggered from jump animation to jump the player
+    /// </summary>
     public void Jump()
     {
-        jumpPoint = transform.position;
         rb.AddForce(transform.up * jumpForce, ForceMode.VelocityChange);
     }
+
+    ///<summary>
+    /// Enables the player controller
+    ///</summary>
+    public void EnablePlayerController()
+    {
+        IsPlayerEnabled = true;
+        rb.velocity = Vector3.zero;
+    }
+
+    ///<summary>
+    /// Disables the player controller
+    ///</summary>
+    public void DisablePlayerController()
+    {
+        IsPlayerEnabled = false;
+        rb.velocity = Vector3.zero;
+    }
+
 
     #region Events
 
     ///<summary>
     /// Triggered when input for movement vector is changed
     ///</summary>
-    private void OnMove(InputValue value)
+    private void OnMove(Vector2 input)
     {
-        targetX = value.Get<Vector2>().x;
-        targetZ = value.Get<Vector2>().y;
+        targetX = input.x;
+        targetZ = input.y;
     }
+
 
     ///<summary>
     /// Triggered when input for sprint key is changed
     ///</summary>
-    private void OnSprint(InputValue value)
+    private void OnSprint(bool value)
     {
-        Sprinting = value.isPressed;
+        Sprinting = value;
     }
 
     ///<summary>
     /// Triggered when input for jump key is changed
     ///</summary>
-    private void OnJump(InputValue value)
+    public void OnJump(InputAction.CallbackContext context)
     {
-        if(IsGrounded && value.isPressed)
+        if (context.performed)
         {
-            animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Jump]);
+            if (context.ReadValueAsButton() && IsGrounded && IsPlayerEnabled)
+            {
+                jumpPoint = transform.position;
+                
+                animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Jump]);
+            }
         }
     }
 
     ///<summary>
     /// Triggered when input for drop key is changed
     ///</summary>
-    private void OnDrop(InputValue value)
+    private void OnDrop(InputAction.CallbackContext context)
     {
-        if (IsHanging)
+        if (context.performed)
         {
-            OnDropPressed.Invoke();
-            //rb.AddForce(-transform.forward * jumpForce * 10, ForceMode.VelocityChange);
+            if (context.ReadValueAsButton())
+            {
+                if (IsHanging)
+                {
+                    OnDropPressed.Invoke();
+                }
+            }
         }
     }
     #endregion
