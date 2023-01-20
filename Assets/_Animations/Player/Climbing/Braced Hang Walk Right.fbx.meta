@@ -1,11 +1,11 @@
 fileFormatVersion: 2
-guid: 9f6cc0adbcef5c34dada7349734a87b6
+guid: 46fb7e52ba498ca49ada25880456baae
 ModelImporter:
   serializedVersion: 21202
   internalIDToNameTable:
   - first:
       74: -203655887218126122
-    second: Running Backwards
+    second: Braced Hang Walk Right
   externalObjects: {}
   materials:
     materialImportMode: 2
@@ -36,22 +36,22 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: Running Backwards
+      name: Braced Hang Walk Right
       takeName: mixamo.com
       internalID: 0
       firstFrame: 0
-      lastFrame: 19
+      lastFrame: 35
       wrapMode: 0
       orientationOffsetY: 0
-      level: 0
+      level: 0.6
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
       loopTime: 1
-      loopBlend: 0
-      loopBlendOrientation: 1
+      loopBlend: 1
+      loopBlendOrientation: 0
       loopBlendPositionY: 1
-      loopBlendPositionXZ: 1
+      loopBlendPositionXZ: 0
       keepOriginalOrientation: 0
       keepOriginalPositionY: 1
       keepOriginalPositionXZ: 0

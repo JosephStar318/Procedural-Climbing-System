@@ -20,7 +20,7 @@ public static class HashManager
         AddToAnimatorHash(AnimatorVariables.Vault, "Vault");
         AddToAnimatorHash(AnimatorVariables.ClimbOver, "Climb Over");
         AddToAnimatorHash(AnimatorVariables.ClimbingOverState, "Climbing Over");
-        AddToAnimatorHash(AnimatorVariables.HangingIdleState, "Hanging Blend Tree");
+        AddToAnimatorHash(AnimatorVariables.HangingBlendState, "Hanging Blend Tree");
         AddToAnimatorHash(AnimatorVariables.FallingToBracedHangState, "Falling To Braced Hang");
         AddToAnimatorHash(AnimatorVariables.VaultingState, "Vaulting");
         AddToAnimatorHash(AnimatorVariables.LandingState, "Landing");
@@ -48,7 +48,7 @@ public enum AnimatorVariables
     ClimbOver,
     Drop,
     Vault,
-    HangingIdleState,
+    HangingBlendState,
     ClimbingOverState,
     FallingToBracedHangState,
     VaultingState,
