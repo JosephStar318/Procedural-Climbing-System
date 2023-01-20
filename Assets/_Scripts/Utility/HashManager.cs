@@ -8,6 +8,7 @@ public static class HashManager
 
     static HashManager()
     {
+        AddToAnimatorHash(AnimatorVariables.ApplyRootMotionTag, "ApplyRootMotion");
         AddToAnimatorHash(AnimatorVariables.Speed, "Speed");
         AddToAnimatorHash(AnimatorVariables.SpeedX, "SpeedX");
         AddToAnimatorHash(AnimatorVariables.SpeedZ, "SpeedZ");
@@ -24,6 +25,10 @@ public static class HashManager
         AddToAnimatorHash(AnimatorVariables.FallingToBracedHangState, "Falling To Braced Hang");
         AddToAnimatorHash(AnimatorVariables.VaultingState, "Vaulting");
         AddToAnimatorHash(AnimatorVariables.LandingState, "Landing");
+        AddToAnimatorHash(AnimatorVariables.BracedHangHopUpState, "Braced Hang Hop Up");
+        AddToAnimatorHash(AnimatorVariables.BracedHangHopDownState, "Braced Hang Hop Down");
+        AddToAnimatorHash(AnimatorVariables.BracedHangHopRightState, "Braced Hang Hop Right");
+        AddToAnimatorHash(AnimatorVariables.BracedHangHopLeftState, "Braced Hang Hop Left");
     }
 
     public static void AddToAnimatorHash(AnimatorVariables av, string hashName)
@@ -37,6 +42,7 @@ public static class HashManager
 
 public enum AnimatorVariables
 {
+    ApplyRootMotionTag,
     Speed,
     SpeedX,
     SpeedZ,
@@ -52,5 +58,9 @@ public enum AnimatorVariables
     ClimbingOverState,
     FallingToBracedHangState,
     VaultingState,
-    LandingState
+    LandingState,
+    BracedHangHopUpState,
+    BracedHangHopDownState,
+    BracedHangHopRightState,
+    BracedHangHopLeftState,
 }

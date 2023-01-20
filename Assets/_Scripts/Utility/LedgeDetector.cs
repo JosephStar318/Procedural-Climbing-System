@@ -19,7 +19,7 @@ public class LedgeDetector : MonoBehaviour
     Vector3 rightSideLedgeRayOrigin;
     RaycastHit leftSideHit;
     RaycastHit rightSideHit;
-
+    RaycastHit dummyHit = new RaycastHit();
 
     public List<GameObject> ledgeList = new List<GameObject>();
 
@@ -78,20 +78,27 @@ public class LedgeDetector : MonoBehaviour
     /// <param name="forwardHit"> player's holding point of the ledge</param>
     /// <param name="moveDir"> Moving direction of the player. -1 left, 1 right</param>
     /// <returns> false if there is no ledge to continue</returns>
-    public bool CheckLedgeInMoveDirection(RaycastHit forwardHit, float moveDir)
+    public bool CheckLedgeInMoveDirection(RaycastHit forwardHit, float moveDir, out float angle, out RaycastHit sideHit)
     {
         bool isRightSideHit = false;
         bool isLeftSideHit = false;
+        angle = 0;
+        sideHit = dummyHit;
 
         leftSideLedgeRayOrigin = transform.TransformPoint(transform.InverseTransformPoint(forwardHit.point) + leftSideRayOffset);
         rightSideLedgeRayOrigin = transform.TransformPoint(transform.InverseTransformPoint(forwardHit.point) + rightSideRayOffset);
 
         if(moveDir == 1)
         {
-            isRightSideHit = Physics.Raycast(rightSideLedgeRayOrigin, -transform.right, out rightSideHit, 1, climbableLayers);
+            isRightSideHit = Physics.Raycast(rightSideLedgeRayOrigin, -transform.right, out rightSideHit, 0.5f, climbableLayers);
             if (isRightSideHit)
             {
-                if (Vector3.Angle(forwardHit.normal, rightSideHit.normal) < maxAngleBetweenLedges)
+                angle = Vector3.Angle(forwardHit.normal, rightSideHit.normal);
+                if (angle < maxAngleBetweenLedges)
+                {
+                    return true;
+                }
+                else if(Physics.OverlapSphere(rightSideLedgeRayOrigin, 0.1f,climbableLayers).Length != 0)
                 {
                     return true;
                 }
@@ -99,20 +106,30 @@ public class LedgeDetector : MonoBehaviour
         }
         else if(moveDir == -1)
         {
-            isLeftSideHit = Physics.Raycast(leftSideLedgeRayOrigin, transform.right, out leftSideHit, 1, climbableLayers);
+            isLeftSideHit = Physics.Raycast(leftSideLedgeRayOrigin, transform.right, out leftSideHit, 0.5f, climbableLayers);
             if (isLeftSideHit)
             {
-                if (Vector3.Angle(forwardHit.normal, leftSideHit.normal) < maxAngleBetweenLedges)
+                angle = Vector3.Angle(forwardHit.normal, leftSideHit.normal);
+                if (angle < maxAngleBetweenLedges)
+                {
+                    return true;
+                }
+                else if (Physics.OverlapSphere(leftSideLedgeRayOrigin, 0.1f, climbableLayers).Length != 0)
                 {
                     return true;
                 }
             }
         }
-        if(!isRightSideHit && !isLeftSideHit)
+        if(moveDir == -1 && !isLeftSideHit)
         {
             return true;
         }
-       
+        else if (moveDir == 1 && !isRightSideHit)
+        {
+            return true;
+        }
+        if (moveDir == 1) sideHit = rightSideHit;
+        else if (moveDir == -1) sideHit = leftSideHit;
         return false;
     }
 
