@@ -24,7 +24,7 @@ MonoBehaviour:
   m_MinSize: {x: 400, y: 200}
   m_MaxSize: {x: 32384, y: 16192}
   vertical: 0
-  controlID: 75
+  controlID: 415
 --- !u!114 &2
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -142,7 +142,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 200}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 1
-  controlID: 76
+  controlID: 416
 --- !u!114 &4
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -168,7 +168,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 100}
   m_MaxSize: {x: 24288, y: 8096}
   vertical: 0
-  controlID: 77
+  controlID: 417
 --- !u!114 &5
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -227,8 +227,8 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: 9cf2ffff
-      m_LastClickedID: -3428
+      m_SelectedIDs: a06d0000
+      m_LastClickedID: 0
       m_ExpandedIDs: 12fbffff
       m_RenameOverlay:
         m_UserAcceptedRename: 0
@@ -505,9 +505,9 @@ MonoBehaviour:
   m_PlayAudio: 0
   m_AudioPlay: 0
   m_Position:
-    m_Target: {x: 2.1414652, y: 0.95407736, z: -5.1611824}
+    m_Target: {x: 4.624768, y: 5.7218094, z: 5.3881783}
     speed: 2
-    m_Value: {x: 2.1414652, y: 0.95407736, z: -5.1611824}
+    m_Value: {x: 4.624768, y: 5.7218094, z: 5.3881783}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -554,13 +554,13 @@ MonoBehaviour:
     m_GridAxis: 1
     m_gridOpacity: 0.5
   m_Rotation:
-    m_Target: {x: 0.02286675, y: -0.6863573, z: 0.02080459, w: 0.72710586}
+    m_Target: {x: 0.08692095, y: 0.6657533, z: -0.07932811, w: 0.737382}
     speed: 2
-    m_Value: {x: 0.022858467, y: -0.68610865, z: 0.020797053, w: 0.72684246}
+    m_Value: {x: 0.086885855, y: 0.66548455, z: -0.07929609, w: 0.7370843}
   m_Size:
-    m_Target: 4.612641
+    m_Target: 0.8660254
     speed: 2
-    m_Value: 4.612641
+    m_Value: 0.8660254
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -639,7 +639,7 @@ MonoBehaviour:
   - {fileID: 13}
   - {fileID: 14}
   m_Selected: 0
-  m_LastSelected: 3
+  m_LastSelected: 2
 --- !u!114 &11
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -682,22 +682,22 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/_Animations/Player/Climbing
+    - Assets/_Materials
     m_Globs: []
     m_OriginalText: 
   m_ViewMode: 1
   m_StartGridSize: 16
   m_LastFolders:
-  - Assets/_Animations/Player/Climbing
+  - Assets/_Materials
   m_LastFoldersGridSize: 16
   m_LastProjectPath: D:\Git-fork\Procedural-Climbing-System
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: d06f0000
-    m_LastClickedID: 28624
-    m_ExpandedIDs: 00000000306e0000c06f0000d26f000000ca9a3b
+    m_SelectedIDs: 766e0000
+    m_LastClickedID: 28278
+    m_ExpandedIDs: 000000006e6e000000ca9a3b
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -725,7 +725,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: 00000000306e0000
+    m_ExpandedIDs: 000000006e6e000000ca9a3b
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -750,8 +750,8 @@ MonoBehaviour:
       m_Icon: {fileID: 0}
       m_ResourceFile: 
   m_ListAreaState:
-    m_SelectedInstanceIDs: 9cf2ffff
-    m_LastClickedInstanceID: -3428
+    m_SelectedInstanceIDs: a06d0000
+    m_LastClickedInstanceID: 28064
     m_HadKeyboardFocusLastEvent: 0
     m_ExpandedInstanceIDs: c623000012b80000e0a10000c0790000b8790000948a0000ae7d0000
     m_RenameOverlay:
@@ -803,16 +803,16 @@ MonoBehaviour:
   m_Pos:
     serializedVersion: 2
     x: 0
-    y: 562
-    width: 1464
-    height: 429
+    y: 640
+    width: 1488
+    height: 351
   m_ViewDataDictionary: {fileID: 0}
   m_OverlayCanvas:
     m_LastAppliedPresetName: Default
     m_SaveData: []
   m_LockTracker:
     m_IsLocked: 0
-  m_LastSelectedObjectID: 27712
+  m_LastSelectedObjectID: 27742
 --- !u!114 &13
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -848,14 +848,14 @@ MonoBehaviour:
     - {fileID: 983725086721313643, guid: db8d426a8bc39e24481c4aa22bb6a467, type: 2}
     - {fileID: -5050941979006285039, guid: db8d426a8bc39e24481c4aa22bb6a467, type: 2}
     m_ValueSerializationHelper:
-    - e00: 1.3381941
+    - e00: 1.2579587
       e01: 0
       e02: 0
-      e03: -465.00452
+      e03: -472.78394
       e10: 0
-      e11: 1.3381941
+      e11: 1.2579587
       e12: 0
-      e13: -449.43243
+      e13: -646.65405
       e20: 0
       e21: 0
       e22: 1
@@ -907,7 +907,7 @@ MonoBehaviour:
   stateMachineGraphGUI: {fileID: 0}
   blendTreeGraph: {fileID: 0}
   blendTreeGraphGUI: {fileID: 0}
-  m_AutoLiveLink: 1
+  m_AutoLiveLink: 0
   m_MiniTool: 0
   m_LockTracker:
     m_IsLocked: 0

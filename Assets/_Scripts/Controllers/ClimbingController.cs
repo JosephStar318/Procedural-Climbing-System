@@ -10,7 +10,6 @@ public class ClimbingController : MonoBehaviour
     private Animator animator;
     private PlayerController playerController;
     private Rigidbody rb;
-    private CapsuleCollider capsuleCollider;
     private LedgeDetector ledgeDetector;
 
     private Vector3 moveVector;
@@ -19,26 +18,13 @@ public class ClimbingController : MonoBehaviour
     private float angleBetweenLedges;
     private bool jumpButtonPressed;
 
-    private RaycastHit downCastHit;
-    private RaycastHit forwardCastHit;
-    private RaycastHit sideCastHit;
-
     [Header("Climb Settings")]
-    [SerializeField] private float wallAngleMax = 45f;
-    [SerializeField] private float groundAngleMax = 45f;
-    [SerializeField] private LayerMask climbableLayers;
-
     [SerializeField] private float stepHeight = 0.5f;
     [SerializeField] private float vaultHeight = 2f;
     [SerializeField] private float hangHeight = 2.5f;
-    [SerializeField] private Vector3 climbOriginDown = new Vector3(0, 2, 0.75f);
-    [SerializeField] private float minStepHeight = 0;
-    [SerializeField] private Vector3 endOffset = Vector3.zero;
-    [SerializeField] private Vector3 hangOffset = new Vector3(0, -1.75f, -0.3f);
-    [SerializeField] private float penetrationOffset = 1.1f;
 
-    private Vector3 endPosition;
-    private Quaternion forwardNormalXZRotation;
+    #region Target Matching
+    private RaycastHit sideCastHit;
 
     private Vector3 matchTargetPositionHanging;
     private Quaternion matchTargetRotationHanging;
@@ -58,6 +44,7 @@ public class ClimbingController : MonoBehaviour
 
     private float startNormalizedTime;
     private float targetNormalizedTime;
+    #endregion
 
     public bool IsClimbMovementEnabled { get; private set; }
 
@@ -79,19 +66,13 @@ public class ClimbingController : MonoBehaviour
     }
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.blue;
-        Gizmos.DrawSphere(endPosition, 0.1f);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(downCastHit.point, 0.1f);
-        Gizmos.color = Color.red;
-        Gizmos.DrawSphere(forwardCastHit.point, 0.1f);
+
     }
     private void Start()
     {
         animator = GetComponent<Animator>();
         playerController = GetComponent<PlayerController>();
         rb = GetComponent<Rigidbody>();
-        capsuleCollider = GetComponent<CapsuleCollider>();
         ledgeDetector = GetComponent<LedgeDetector>();
         IsClimbMovementEnabled = true;
     }
@@ -105,13 +86,13 @@ public class ClimbingController : MonoBehaviour
                 ClimbMovement();
             }
         }
-        if (CanClimb())
+        if (ledgeDetector.CanClimb())
         {
             //matching target to keep alligned with the wall
-            SetTargetMatchingToLedge(forwardCastHit);
+            ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging);
 
             if (playerController.IsHanging || !playerController.IsPlayerEnabled) return;
-
+            RaycastHit downCastHit = ledgeDetector.ReturnDownCastHit();
             float jumpHeight = downCastHit.point.y - playerController.jumpPoint.y;
 
             if (playerController.IsFalling)
@@ -137,7 +118,6 @@ public class ClimbingController : MonoBehaviour
             }
             else if (jumpHeight < stepHeight && jumpButtonPressed)
             {
-                //do nothing
                 if (GlobalSettings.Instance.debugMode) Debug.Log("Doing Nothing");
             }
         }
@@ -153,45 +133,33 @@ public class ClimbingController : MonoBehaviour
     }
 
     ///<summary>
-    /// Plays the Vaulting animation
+    ///Plays the Vaulting animation
     ///</summary>
     private void Vault()
     {
-        matchTargetPositionVaulting = endPosition;
-        matchTargetRotationVaulting = forwardNormalXZRotation;
+        ledgeDetector.SetTargetMatchingToEndpoint(out matchTargetPositionVaulting, out matchTargetRotationVaulting);
         animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Vault]);
         playerController.DisablePlayerController();
     }
 
     ///<summary>
-    /// Plays the hanging animation
+    ///Plays the hanging animation
     ///</summary>
     private void Hang()
     {
-        SetTargetMatchingToLedge(forwardCastHit);
-
+        ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging);
         animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.FallingHang]);
-
         playerController.DisablePlayerController();
         playerController.IsHanging = true;
         rb.isKinematic = true;
     }
 
-    private void SetTargetMatchingToLedge(RaycastHit hit)
-    {
-        Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(hit.normal, Vector3.up);
-        forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
-
-        matchTargetPositionHanging = hit.point + forwardNormalXZRotation * hangOffset;
-        matchTargetRotationHanging = forwardNormalXZRotation;
-    }
-
     ///<summary>
-    /// Moves the player while hanging
+    ///Moves the player while hanging
     ///</summary>
     private void ClimbMovement()
     {
-        if(ledgeDetector.CheckLedgeInMoveDirection(forwardCastHit, targetX, out angleBetweenLedges, out sideCastHit))
+        if(ledgeDetector.CheckLedgeInMoveDirection(targetX, out angleBetweenLedges, out sideCastHit))
         {
             moveVector.x = Mathf.Lerp(moveVector.x, targetX, Time.deltaTime * 3);
             animator.SetFloat(HashManager.animatorHashDict[AnimatorVariables.SpeedX], moveVector.x);
@@ -200,23 +168,11 @@ public class ClimbingController : MonoBehaviour
         {
             if(angleBetweenLedges <=90 && targetX == -1)
             {
-                animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopLeftState], 0.1f);
-                Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(sideCastHit.normal, Vector3.up);
-                forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
-                matchTargetPositionHoping = sideCastHit.point + forwardNormalXZRotation * hangOffset;
-                matchTargetRotationHoping = forwardNormalXZRotation;
-
-                IsClimbMovementEnabled = false;
+                HopLeft();
             }
             else if (angleBetweenLedges <= 90 && targetX == 1)
             {
-                animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopRightState], 0.1f);
-                Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(sideCastHit.normal, Vector3.up);
-                forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
-                matchTargetPositionHoping = sideCastHit.point + forwardNormalXZRotation * hangOffset;
-                matchTargetRotationHoping = forwardNormalXZRotation;
-
-                IsClimbMovementEnabled = false;
+                HopRight();
             }
             else
             {
@@ -231,7 +187,7 @@ public class ClimbingController : MonoBehaviour
             {
                 return;
             }
-            if (CanClimbOver() == true)
+            if (ledgeDetector.CanClimbOver() == true)
             {
                 Debug.Log("can climb over");
                 ClimbOver();
@@ -243,146 +199,37 @@ public class ClimbingController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Plays Hop Right animation
+    /// </summary>
+    private void HopRight()
+    {
+        animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopRightState], 0.1f);
+        ledgeDetector.SetTargetMatchingToHitPoint(sideCastHit, out matchTargetPositionHoping, out matchTargetRotationHoping);
+        IsClimbMovementEnabled = false;
+    }
+
+    /// <summary>
+    /// Plays Hop Left animation
+    /// </summary>
+    private void HopLeft()
+    {
+        animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopLeftState], 0.1f);
+        ledgeDetector.SetTargetMatchingToHitPoint(sideCastHit, out matchTargetPositionHoping, out matchTargetRotationHoping);
+        IsClimbMovementEnabled = false;
+    }
+
     ///<summary>
-    /// Plays the ClimbOver animation
+    ///Plays the ClimbOver animation
     ///</summary>
     private void ClimbOver()
     {
-        matchTargetPositionClimbOver = endPosition;
-        matchTargetRotationClimbOver = forwardNormalXZRotation;
+        ledgeDetector.SetTargetMatchingToEndpoint(out matchTargetPositionClimbOver, out matchTargetRotationClimbOver);
         playerController.IsHanging = false;
         Debug.Log("climbing over..");
         animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.ClimbOver]);
     }
  
-    ///<summary>
-    /// Detects the ledge if its climbable.
-    /// If ledge is detected returns true
-    ///</summary>
-    private bool CanClimb()
-    {
-        bool downHit;
-        bool forwardHit;
-        float groundAngle;
-        float wallAngle;
-
-        Vector3 forwardDirectionXZ;
-        Vector3 forwardNormalXZ;
-
-        Vector3 downDirection = Vector3.down;
-        Vector3 downOrigin = transform.TransformPoint(climbOriginDown);
-        
-        Debug.DrawLine(downOrigin, downOrigin + Vector3.down, Color.red);
-
-        downHit = Physics.Raycast(downOrigin, downDirection, out downCastHit, climbOriginDown.y - minStepHeight, climbableLayers);
-
-        if(downHit)
-        {
-            float forwardDistance = climbOriginDown.z;
-            Vector3 forwardOrigin = new Vector3(transform.position.x, downCastHit.point.y - 0.1f, transform.position.z);
-            Debug.DrawLine(forwardOrigin, forwardOrigin + transform.forward, Color.red);
-
-            forwardDirectionXZ = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
-            forwardHit = Physics.Raycast(forwardOrigin, forwardDirectionXZ, out forwardCastHit, forwardDistance, climbableLayers);
-            if(forwardHit)
-            {
-                forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
-                groundAngle = Vector3.Angle(downCastHit.normal, Vector3.up);
-                wallAngle = Vector3.Angle(-forwardNormalXZ, forwardDirectionXZ);
-
-                if(wallAngle <= wallAngleMax)
-                {
-                    if(groundAngle <= groundAngleMax)
-                    {
-                        Vector3 vectSurface = Vector3.ProjectOnPlane(forwardDirectionXZ, downCastHit.normal);
-                        endPosition = downCastHit.point + Quaternion.LookRotation(vectSurface, Vector3.up) * endOffset;
-
-                        Collider colliderLedge = downCastHit.collider;
-                        bool penetrationOverlap = Physics.ComputePenetration(
-                            colliderA: capsuleCollider,
-                            positionA: endPosition,
-                            rotationA: transform.rotation,
-                            colliderB: colliderLedge,
-                            positionB: colliderLedge.transform.position,
-                            rotationB: colliderLedge.transform.rotation,
-                            direction: out Vector3 penetrationDirection,
-                            distance: out float penetrationDistance
-                            );
-                        if (penetrationOverlap)
-                            endPosition += penetrationDirection * (penetrationDistance + penetrationOffset);
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    ///<summary>
-    /// Checks if the player can climb over. 
-    /// If there is enough space over the ledge returns true
-    ///</summary>
-    private bool CanClimbOver()
-    {
-        float inflate = -0.05f;
-        float upsweepDistance = downCastHit.point.y - transform.position.y;
-        Vector3 upSweepDirection = transform.up;
-        Vector3 upSweepOrigin = transform.position;
-        bool upSweepHit = CharacterSweep(
-            position: upSweepOrigin,
-            rotation: transform.rotation,
-            direction: upSweepDirection,
-            distance: upsweepDistance,
-            layerMask: climbableLayers,
-            inflate: inflate
-            );
-
-        Vector3 forwardSweepOrigin = transform.position + upSweepDirection * upsweepDistance;
-        Vector3 forwardSweepVector = endPosition - forwardSweepOrigin;
-        bool forwardSweepHit = CharacterSweep(
-                position: forwardSweepOrigin,
-                rotation: transform.rotation,
-                direction: forwardSweepVector.normalized,
-                distance: forwardSweepVector.magnitude,
-                layerMask: climbableLayers,
-                inflate: inflate
-            );
-        if(!upSweepHit && !forwardSweepHit)
-        {
-            return true;
-        }
-        return false;
-    }
-
-
-    ///<summary>
-    /// Checks if the route to the climbover end point.
-    /// If there is obstacle in the way returns false.
-    ///</summary>
-    private bool CharacterSweep(Vector3 position, Quaternion rotation, Vector3 direction, float distance, LayerMask layerMask, float inflate)
-    {
-        float heightScale = Mathf.Abs(transform.lossyScale.y);
-        float radiusScale = Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z));
-
-        float radius = capsuleCollider.radius * radiusScale;
-        float totalHeight = Mathf.Max(capsuleCollider.height * heightScale, radius * 2);
-
-        Vector3 capsuleUp = rotation * Vector3.up;
-        Vector3 center = position + rotation * capsuleCollider.center;
-        Vector3 top = center + capsuleUp * (totalHeight / 2 - radius);
-        Vector3 bottom = center - capsuleUp * (totalHeight / 2 - radius);
-
-        bool sweepHit = Physics.CapsuleCast(
-                point1: bottom,
-                point2: top,
-                radius: radius + inflate,
-                direction: direction,
-                maxDistance: distance,
-                layerMask: layerMask
-            );
-        return sweepHit;
-    }
-
     #region Events
 
     ///<summary>
