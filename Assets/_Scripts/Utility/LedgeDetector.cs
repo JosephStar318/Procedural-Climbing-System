@@ -20,12 +20,17 @@ public class LedgeDetector : MonoBehaviour
     [SerializeField] private Vector3 hangOffset = new Vector3(0, -1.75f, -0.3f);
     [SerializeField] private float penetrationOffset = 1.1f;
 
-    [SerializeField] float maxCornerAngle = 20;
+    [SerializeField] float maxCornerAngle = 90;
+    [SerializeField] float minCornerAngle = 25;
     [SerializeField] private Vector3 leftSideRayOffset;
     [SerializeField] private Vector3 rightSideRayOffset;
 
     Vector3 leftSideLedgeRayOrigin;
     Vector3 rightSideLedgeRayOrigin;
+
+    Vector3 rightCornerRayOrigin;
+    Vector3 leftCornerRayOrigin;
+    float maxSideHitDistance = 1f;
 
     private RaycastHit downCastHit;
     private RaycastHit forwardCastHit;
@@ -34,18 +39,22 @@ public class LedgeDetector : MonoBehaviour
     private Vector3 endPosition;
     private Quaternion forwardNormalXZRotation;
 
-    public List<GameObject> ledgeList = new List<GameObject>();
-
+    private Animator animator;
+    private Rigidbody rb;
     private void Start()
     {
         playerController = GetComponent<PlayerController>();
         capsuleCollider = GetComponent<CapsuleCollider>();
+        animator = GetComponent<Animator>();
+        rb = GetComponent<Rigidbody>();
     }
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.cyan;
         Gizmos.DrawSphere(leftSideLedgeRayOrigin, 0.1f);
         Gizmos.DrawSphere(rightSideLedgeRayOrigin, 0.1f);
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawSphere(sideCastHit.point, 0.1f);
 
         Gizmos.color = Color.blue;
         Gizmos.DrawSphere(endPosition, 0.1f);
@@ -53,39 +62,24 @@ public class LedgeDetector : MonoBehaviour
         Gizmos.DrawSphere(downCastHit.point, 0.1f);
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(forwardCastHit.point, 0.1f);
+        Gizmos.DrawSphere(leftCornerRayOrigin, 0.1f);
     }
     private void FixedUpdate()
     {
-        if (GlobalSettings.Instance.debugMode == true)
+        ErrorCorrection();
+    }
+
+
+    public void ErrorCorrection()
+    {
+        if (playerController.IsHanging)
         {
-            //Debug.DrawRay(headRay.position, headRayDirection, Color.red);
-            //Debug.DrawRay(sideRay.position, sideRayDirection, Color.red);
-            //Debug.DrawLine(headRay.position, ledgeGrabbingPoint, Color.blue);
+            if(animator.GetCurrentAnimatorStateInfo(0).shortNameHash == HashManager.animatorHashDict[AnimatorVariables.HangingBlendState])
+                rb.rotation = Quaternion.RotateTowards(rb.rotation, forwardNormalXZRotation, Time.fixedDeltaTime * 75);
         }
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if(other.gameObject.layer == climbableLayers)
-        {
-            if(ledgeList.Contains(other.gameObject) == false)
-            {
-                if(GlobalSettings.Instance.debugMode) Debug.Log("Ledge Detected and added to the list.");
-                ledgeList.Add(other.gameObject);
-            }
-        }
-    }
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.gameObject.layer == climbableLayers)
-        {
-            if (ledgeList.Contains(other.gameObject) == true)
-            {
-                if (GlobalSettings.Instance.debugMode) Debug.Log("Ledge removed from the list.");
-                ledgeList.Remove(other.gameObject);
-            }
-        }
-    }
+
 
     /// <summary>
     /// Detects the if the ledge is climbable
@@ -106,7 +100,7 @@ public class LedgeDetector : MonoBehaviour
 
         Debug.DrawLine(downOrigin, downOrigin + Vector3.down, Color.red);
 
-        downHit = Physics.Raycast(downOrigin, downDirection, out downCastHit, climbOriginDown.y - minStepHeight, climbableLayers);
+        downHit = Physics.SphereCast(downOrigin, 0.15f, downDirection, out downCastHit, climbOriginDown.y - minStepHeight, climbableLayers);
 
         if (downHit)
         {
@@ -227,60 +221,113 @@ public class LedgeDetector : MonoBehaviour
     /// <param name="cornerAngle">Angle of the corner ledge</param>
     /// <param name="sideHit">Player's holding point of the ledge</param>
     /// <returns>false if there is no ledge to continue</returns>
-    public bool CheckLedgeInMoveDirection(float moveDir, out float cornerAngle, out RaycastHit sideHit)
+    public bool CheckLedgeInMoveDirection(float moveDir, out bool isCorner, out float cornerAngle, out RaycastHit sideHit)
     {
         bool isRightSideHit = false;
         bool isLeftSideHit = false;
         cornerAngle = 0;
         sideHit = sideCastHit;
+        isCorner = false;
 
-        leftSideLedgeRayOrigin = transform.TransformPoint(transform.InverseTransformPoint(forwardCastHit.point) + leftSideRayOffset);
-        rightSideLedgeRayOrigin = transform.TransformPoint(transform.InverseTransformPoint(forwardCastHit.point) + rightSideRayOffset);
+        leftCornerRayOrigin = transform.TransformPoint(leftSideRayOffset + new Vector3(0, 0, 0.3f));
+        rightCornerRayOrigin = transform.TransformPoint(rightSideRayOffset + new Vector3(0, 0, 0.3f));
+        leftSideLedgeRayOrigin = transform.TransformPoint(leftSideRayOffset);
+        rightSideLedgeRayOrigin = transform.TransformPoint(rightSideRayOffset);
+
 
         if(moveDir == 1)
         {
-            isRightSideHit = Physics.Raycast(rightSideLedgeRayOrigin, -transform.right, out sideCastHit, 0.5f, climbableLayers);
+            isRightSideHit = Physics.Raycast(rightSideLedgeRayOrigin, -transform.right, out sideCastHit, maxSideHitDistance, climbableLayers);
             if (isRightSideHit)
             {
-                cornerAngle = Vector3.Angle(forwardCastHit.normal, sideCastHit.normal);
-                if (cornerAngle < maxCornerAngle)
+                //if there is a hit but if some other platform colliding to near edge 
+                if(Physics.OverlapSphere(rightSideLedgeRayOrigin, 0.1f, climbableLayers).Length != 0)
                 {
                     return true;
                 }
-                else if(Physics.OverlapSphere(rightSideLedgeRayOrigin, 0.1f,climbableLayers).Length != 0)
+                else
                 {
-                    return true;
+                    //corner check
+                    if (Physics.Raycast(rightCornerRayOrigin, -transform.right, out sideCastHit, maxSideHitDistance, climbableLayers))
+                    {
+                        cornerAngle = Vector3.Angle(forwardCastHit.normal, sideCastHit.normal);
+                        if (minCornerAngle <= cornerAngle && cornerAngle <= maxCornerAngle)
+                        {
+                            isCorner = true;
+                            sideHit = sideCastHit;
+                            return false;
+                        }
+                        else if (cornerAngle < minCornerAngle)
+                        {
+                            return true;
+                        }
+                    }
+                    else if (Physics.OverlapSphere(rightCornerRayOrigin, 0.2f, climbableLayers).Length != 0)
+                    {
+                        //if there is any collision near corner it means player is moving at the edge of a circle
+                        return true;
+                    }
                 }
+            }
+            else
+            {
+                return true;
             }
         }
         else if(moveDir == -1)
         {
-            isLeftSideHit = Physics.Raycast(leftSideLedgeRayOrigin, transform.right, out sideCastHit, 0.5f, climbableLayers);
+            isLeftSideHit = Physics.Raycast(leftSideLedgeRayOrigin, transform.right, out sideCastHit, maxSideHitDistance, climbableLayers);
             if (isLeftSideHit)
             {
-                cornerAngle = Vector3.Angle(forwardCastHit.normal, sideCastHit.normal);
-                if (cornerAngle < maxCornerAngle)
+                //if there is a hit but if some other platform colliding to near edge 
+                if (Physics.OverlapSphere(leftSideLedgeRayOrigin, 0.1f, climbableLayers).Length != 0)
                 {
                     return true;
                 }
-                else if (Physics.OverlapSphere(leftSideLedgeRayOrigin, 0.1f, climbableLayers).Length != 0)
+                else
                 {
-                    return true;
+                    //corner check
+                    if (Physics.Raycast(leftCornerRayOrigin, transform.right, out sideCastHit, maxSideHitDistance, climbableLayers))
+                    {
+                        cornerAngle = Vector3.Angle(forwardCastHit.normal, sideCastHit.normal);
+                        Debug.Log(cornerAngle);
+                        if (minCornerAngle <= cornerAngle && cornerAngle <= maxCornerAngle)
+                        {
+                            isCorner = true;
+                            sideHit = sideCastHit;
+                            return false;
+                        }
+                        else if(cornerAngle < minCornerAngle)
+                        {
+                            return true;
+                        }
+                    }
+                    else if (Physics.OverlapSphere(leftCornerRayOrigin, 0.2f, climbableLayers).Length != 0)
+                    {
+                        //if there is any collision near corner it means player is moving at the edge of a circle
+                        return true;
+                    }
                 }
             }
+            else
+            {
+                return true;
+            }
         }
-        if(moveDir == -1 && !isLeftSideHit)
-        {
-            return true;
-        }
-        else if (moveDir == 1 && !isRightSideHit)
-        {
-            return true;
-        }
+        sideHit = sideCastHit;
+
+        if (moveDir == 0)
+            return false;
 
         return false;
     }
 
+
+    public bool CheckJumpableLedgeInMoveDirection(float moveDir, GameObject rayConstruct, float areaDiameter)
+    {
+
+        return false;
+    }
 
     /// <summary>
     /// Sets target matching position and rotation for hitpoint
