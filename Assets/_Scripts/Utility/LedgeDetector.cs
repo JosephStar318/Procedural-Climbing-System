@@ -17,7 +17,7 @@ public class LedgeDetector : MonoBehaviour
 
     [SerializeField] private Vector3 climbOriginDown = new Vector3(0, 2, 0.75f);
     [SerializeField] private Vector3 endOffset = new Vector3(0,0.1f,0);
-    [SerializeField] private Vector3 hangOffset = new Vector3(0, -1.75f, -0.3f);
+    [SerializeField] private Vector3 handOffset = new Vector3(0, 0, 0);
     [SerializeField] private float penetrationOffset = 1.1f;
 
     [SerializeField] float maxCornerAngle = 90;
@@ -25,12 +25,16 @@ public class LedgeDetector : MonoBehaviour
     [SerializeField] private Vector3 leftSideRayOffset;
     [SerializeField] private Vector3 rightSideRayOffset;
 
+    [SerializeField] private Transform jumpCheckerTransform;
+
     Vector3 leftSideLedgeRayOrigin;
     Vector3 rightSideLedgeRayOrigin;
 
     Vector3 rightCornerRayOrigin;
     Vector3 leftCornerRayOrigin;
     float maxSideHitDistance = 1f;
+
+    Vector2 previousMoveVector;
 
     private RaycastHit downCastHit;
     private RaycastHit forwardCastHit;
@@ -47,6 +51,8 @@ public class LedgeDetector : MonoBehaviour
         capsuleCollider = GetComponent<CapsuleCollider>();
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
+
+        jumpCheckerTransform.position = transform.position;
     }
     private void OnDrawGizmos()
     {
@@ -63,29 +69,17 @@ public class LedgeDetector : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(forwardCastHit.point, 0.1f);
         Gizmos.DrawSphere(leftCornerRayOrigin, 0.1f);
+
+        Gizmos.color = Color.black;
+        Gizmos.DrawSphere(jumpCheckerTransform.position, 0.1f);
     }
-    private void FixedUpdate()
-    {
-        ErrorCorrection();
-    }
-
-
-    public void ErrorCorrection()
-    {
-        if (playerController.IsHanging)
-        {
-            if(animator.GetCurrentAnimatorStateInfo(0).shortNameHash == HashManager.animatorHashDict[AnimatorVariables.HangingBlendState])
-                rb.rotation = Quaternion.RotateTowards(rb.rotation, forwardNormalXZRotation, Time.fixedDeltaTime * 75);
-        }
-    }
-
-
+    
 
     /// <summary>
     /// Detects the if the ledge is climbable
     /// </summary>
     /// <returns>true if ledge is detected</returns>
-    public bool CanClimb()
+    public bool CanClimb(Transform originTransform)
     {
         bool downHit;
         bool forwardHit;
@@ -96,7 +90,7 @@ public class LedgeDetector : MonoBehaviour
         Vector3 forwardNormalXZ;
 
         Vector3 downDirection = Vector3.down;
-        Vector3 downOrigin = transform.TransformPoint(climbOriginDown);
+        Vector3 downOrigin = originTransform.TransformPoint(climbOriginDown);
 
         Debug.DrawLine(downOrigin, downOrigin + Vector3.down, Color.red);
 
@@ -105,10 +99,10 @@ public class LedgeDetector : MonoBehaviour
         if (downHit)
         {
             float forwardDistance = climbOriginDown.z;
-            Vector3 forwardOrigin = new Vector3(transform.position.x, downCastHit.point.y - 0.1f, transform.position.z);
-            Debug.DrawLine(forwardOrigin, forwardOrigin + transform.forward, Color.red);
+            Vector3 forwardOrigin = new Vector3(originTransform.position.x, downCastHit.point.y - 0.1f, originTransform.position.z);
+            Debug.DrawLine(forwardOrigin, forwardOrigin + originTransform.forward, Color.red);
 
-            forwardDirectionXZ = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            forwardDirectionXZ = Vector3.ProjectOnPlane(originTransform.forward, Vector3.up);
             forwardHit = Physics.Raycast(forwardOrigin, forwardDirectionXZ, out forwardCastHit, forwardDistance, climbableLayers);
             if (forwardHit)
             {
@@ -127,7 +121,7 @@ public class LedgeDetector : MonoBehaviour
                         bool penetrationOverlap = Physics.ComputePenetration(
                             colliderA: capsuleCollider,
                             positionA: endPosition,
-                            rotationA: transform.rotation,
+                            rotationA: originTransform.rotation,
                             colliderB: colliderLedge,
                             positionB: colliderLedge.transform.position,
                             rotationB: colliderLedge.transform.rotation,
@@ -323,10 +317,49 @@ public class LedgeDetector : MonoBehaviour
     }
 
 
-    public bool CheckJumpableLedgeInMoveDirection(float moveDir, GameObject rayConstruct, float areaDiameter)
+    public bool CheckJumpableLedgeInMoveDirection(Vector2 moveVector, float areaDiameter)
     {
+        if(previousMoveVector == moveVector)
+        {
+            jumpCheckerTransform.position = Vector3.Lerp(
+                jumpCheckerTransform.position,
+                transform.TransformPoint(areaDiameter * new Vector3(moveVector.x, moveVector.y, 0)),
+                Time.fixedDeltaTime * 2
+                );
+        }
+        else
+        {
+            jumpCheckerTransform.position = transform.position;
+        }
+        previousMoveVector = moveVector;
 
-        return false;
+
+        if (CanClimb(jumpCheckerTransform) == true)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public bool CheckLedgeInLookDirection()
+    {
+        return true;
+    }
+
+    /// <summary>
+    /// Sets target matching position and rotation for ledge
+    /// </summary>
+    /// <param name="pos">Matched position</param>
+    /// <param name="rot">Matched rotation</param>
+    public void SetTargetMatchingToLedge(out Vector3 pos, out Quaternion rot)
+    {
+        Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
+        forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
+        pos = forwardCastHit.point + forwardNormalXZRotation * handOffset;
+        rot = forwardNormalXZRotation;
     }
 
     /// <summary>
@@ -339,20 +372,7 @@ public class LedgeDetector : MonoBehaviour
     {
         Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(hit.normal, Vector3.up);
         forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
-        pos = hit.point + forwardNormalXZRotation * hangOffset;
-        rot = forwardNormalXZRotation;
-    }
-
-    /// <summary>
-    /// Sets target matching position and rotation for ledge
-    /// </summary>
-    /// <param name="pos">Matched position</param>
-    /// <param name="rot">Matched rotation</param>
-    public void SetTargetMatchingToLedge(out Vector3 pos, out Quaternion rot)
-    {
-        Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
-        forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
-        pos = forwardCastHit.point + forwardNormalXZRotation * hangOffset;
+        pos = hit.point + forwardNormalXZRotation * handOffset;
         rot = forwardNormalXZRotation;
     }
 
@@ -375,8 +395,5 @@ public class LedgeDetector : MonoBehaviour
         return downCastHit;
     }
 
-    public bool CheckLedgeInLookDirection()
-    {
-        return true;
-    }
+
 }
