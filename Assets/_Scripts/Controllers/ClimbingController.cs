@@ -13,13 +13,12 @@ public class ClimbingController : MonoBehaviour
     private LedgeDetector ledgeDetector;
 
     private Vector3 moveVector;
-    private Vector3 targetVector;
+    [SerializeField] private Vector3 targetVector;
     private float cornerAngle;
     private bool isCorner;
     private bool jumpButtonPressed;
     private GameObject grabbedLedge;
-
-
+    private AvatarTarget matchedBodyPart;
     [Header("Climb Settings")]
     [SerializeField] private float maxStepHeight = 0.5f;
     [SerializeField] private float maxVaultHeight = 2f;
@@ -228,11 +227,11 @@ public class ClimbingController : MonoBehaviour
         {
             animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopLeftState], 0.1f);
         }
-        else if (targetVector.y == 1)
+        else if (targetVector.y > 0.5f)
         {
             animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopUpState], 0.1f);
         }
-        else if (targetVector.y == -1)
+        else if (targetVector.y < -0.5f)
         {
             animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopDownState], 0.1f);
         }
@@ -260,6 +259,39 @@ public class ClimbingController : MonoBehaviour
     private void OnMove(Vector2 input)
     {
         targetVector = input;
+
+        if (targetVector.x == 1 && targetVector.y == 0)
+        {
+            matchedBodyPart = AvatarTarget.LeftHand;
+        }
+        else if (targetVector.x == -1 && targetVector.y == 0)
+        {
+            matchedBodyPart = AvatarTarget.RightHand;
+        }
+        else if (targetVector.y == 1)
+        {
+            matchedBodyPart = AvatarTarget.RightHand;
+        }
+        else if (targetVector.y == -1)
+        {
+            matchedBodyPart = AvatarTarget.RightHand;
+        }
+        else if (targetVector.x < -0.5f && targetVector.y < -0.5f)
+        {
+            matchedBodyPart = AvatarTarget.RightHand;
+        }
+        else if (targetVector.x > 0.5f && targetVector.y < -0.5f)
+        {
+            matchedBodyPart = AvatarTarget.LeftHand;
+        }
+        else if (targetVector.x < -0.5f && targetVector.y > 0.5f)
+        {
+            matchedBodyPart = AvatarTarget.RightHand;
+        }
+        else if (targetVector.x > 0.5f && targetVector.y > 0.5f)
+        {
+            matchedBodyPart = AvatarTarget.LeftHand;
+        }
     }
 
     ///<summary>
@@ -319,7 +351,7 @@ public class ClimbingController : MonoBehaviour
                 if (animator.isMatchingTarget) return;
                 startNormalizedTime = 0;
                 targetNormalizedTime = 0.3f;
-                animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, AvatarTarget.RightHand, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+                animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
             }
             else if (animatorState == AnimatorState.Exit)
             {
@@ -393,7 +425,7 @@ public class ClimbingController : MonoBehaviour
                 if (animator.isMatchingTarget) return;
                 startNormalizedTime = 0;
                 targetNormalizedTime = 1;
-                animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, AvatarTarget.RightHand, ledgeWeightMask, startNormalizedTime, targetNormalizedTime);
+                animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, ledgeWeightMask, startNormalizedTime, targetNormalizedTime);
             }
             else if (animatorState == AnimatorState.Exit)
             {
@@ -413,7 +445,7 @@ public class ClimbingController : MonoBehaviour
                 MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
-                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, AvatarTarget.LeftHand, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
             }
             else if (animatorState == AnimatorState.Exit)
             {
@@ -434,7 +466,7 @@ public class ClimbingController : MonoBehaviour
                 MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
-                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, AvatarTarget.RightHand, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
             }
             else if (animatorState == AnimatorState.Exit)
             {
@@ -453,7 +485,7 @@ public class ClimbingController : MonoBehaviour
                 if (animator.isMatchingTarget) return;
                 startNormalizedTime = 0.1f;
                 targetNormalizedTime = 0.5f;
-                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, AvatarTarget.RightHand, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
 
             }
             else if (animatorState == AnimatorState.Exit)
@@ -473,7 +505,7 @@ public class ClimbingController : MonoBehaviour
                 if (animator.isMatchingTarget) return;
                 startNormalizedTime = 0.3f;
                 targetNormalizedTime = 0.7f;
-                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, AvatarTarget.RightHand, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
 
             }
             else if (animatorState == AnimatorState.Exit)

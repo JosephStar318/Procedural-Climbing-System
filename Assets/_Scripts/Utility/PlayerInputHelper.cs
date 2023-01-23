@@ -64,8 +64,6 @@ public class PlayerInputHelper : MonoBehaviour
     {
         OnSprint?.Invoke(obj.ReadValueAsButton());
     }
-
-  
     private void MovePressed(InputAction.CallbackContext obj)
     {
         OnMove?.Invoke(obj.ReadValue<Vector2>());
@@ -91,3 +89,4 @@ public class PlayerInputHelper : MonoBehaviour
         OnDrop?.Invoke(obj);
     }
 }
+

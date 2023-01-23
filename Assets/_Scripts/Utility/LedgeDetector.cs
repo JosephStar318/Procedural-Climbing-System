@@ -11,6 +11,7 @@ public class LedgeDetector : MonoBehaviour
 
     [Header("Ledge Settings")]
     [SerializeField] private LayerMask climbableLayers;
+    [SerializeField] private LayerMask obstacleLayers;
     [SerializeField] private float wallAngleMax = 45f;
     [SerializeField] private float groundAngleMax = 45f;
     [SerializeField] private float minStepHeight = 0;
@@ -153,7 +154,7 @@ public class LedgeDetector : MonoBehaviour
             rotation: transform.rotation,
             direction: upSweepDirection,
             distance: upsweepDistance,
-            layerMask: climbableLayers,
+            layerMask: obstacleLayers,
             inflate: inflate
             );
 
@@ -164,7 +165,7 @@ public class LedgeDetector : MonoBehaviour
                 rotation: transform.rotation,
                 direction: forwardSweepVector.normalized,
                 distance: forwardSweepVector.magnitude,
-                layerMask: climbableLayers,
+                layerMask: obstacleLayers,
                 inflate: inflate
             );
         if (!upSweepHit && !forwardSweepHit)
@@ -242,7 +243,7 @@ public class LedgeDetector : MonoBehaviour
                 else
                 {
                     //corner check
-                    if (Physics.Raycast(rightCornerRayOrigin, -transform.right, out sideCastHit, maxSideHitDistance, climbableLayers))
+                    if (Physics.Raycast(rightCornerRayOrigin, -transform.right, out sideCastHit, maxSideHitDistance, obstacleLayers))
                     {
                         cornerAngle = Vector3.Angle(forwardCastHit.normal, sideCastHit.normal);
                         if (minCornerAngle <= cornerAngle && cornerAngle <= maxCornerAngle)
@@ -281,7 +282,7 @@ public class LedgeDetector : MonoBehaviour
                 else
                 {
                     //corner check
-                    if (Physics.Raycast(leftCornerRayOrigin, transform.right, out sideCastHit, maxSideHitDistance, climbableLayers))
+                    if (Physics.Raycast(leftCornerRayOrigin, transform.right, out sideCastHit, maxSideHitDistance, obstacleLayers))
                     {
                         cornerAngle = Vector3.Angle(forwardCastHit.normal, sideCastHit.normal);
                         Debug.Log(cornerAngle);
