@@ -173,7 +173,7 @@ public class ClimbingController : MonoBehaviour
 
         if (jumpButtonPressed)
         {
-            if(animator.GetCurrentAnimatorStateInfo(0).shortNameHash != HashManager.animatorHashDict[AnimatorVariables.HangingBlendState])
+            if(animator.GetCurrentAnimatorStateInfo(0).shortNameHash != HashManager.animatorHashDict[AnimatorVariables.BracedHangingBlendState])
             {
                 return;
             }
@@ -207,11 +207,22 @@ public class ClimbingController : MonoBehaviour
         if (grabbedLedge == ledgeDetector.ReturnDownCastHit().transform.gameObject) return;
 
         ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging);
-        animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.FallingHang]);
-        grabbedLedge = ledgeDetector.ReturnDownCastHit().transform.gameObject;
+        
+        if(ledgeDetector.IsLedgeBraced() == true)
+        {
+            animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.FallingToBracedHang]);
+            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Braced], true);
+        }
+        else
+        {
+            animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.FallingToFreeHang]);
+            animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Braced], false);
+        }
 
         playerController.DisablePlayerController();
         playerController.IsHanging = true;
+
+        grabbedLedge = ledgeDetector.ReturnDownCastHit().transform.gameObject;
     }
 
     /// <summary>
@@ -219,25 +230,44 @@ public class ClimbingController : MonoBehaviour
     /// </summary>
     private void Hop()
     {
-        if (targetVector.x == 1 && targetVector.y == 0)
+        if(ledgeDetector.IsBraced)
         {
-            animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopRightState], 0.1f);
+            if (targetVector.x == 1 && targetVector.y == 0)
+            {
+                animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopRightState], 0.1f);
+                IsClimbMovementEnabled = false;
+            }
+            else if (targetVector.x == -1 && targetVector.y == 0)
+            {
+                animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopLeftState], 0.1f);
+                IsClimbMovementEnabled = false;
+            }
+            else if (targetVector.y > 0.5f)
+            {
+                animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopUpState], 0.1f);
+                IsClimbMovementEnabled = false;
+            }
+            else if (targetVector.y < -0.5f)
+            {
+                animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopDownState], 0.1f);
+                IsClimbMovementEnabled = false;
+            }
         }
-        else if (targetVector.x == -1 && targetVector.y == 0)
+        else
         {
-            animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopLeftState], 0.1f);
-        }
-        else if (targetVector.y > 0.5f)
-        {
-            animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopUpState], 0.1f);
-        }
-        else if (targetVector.y < -0.5f)
-        {
-            animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.BracedHangHopDownState], 0.1f);
+            if (targetVector.x == 1 && targetVector.y == 0)
+            {
+                animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.FreeHangHopRightState], 0.1f);
+                IsClimbMovementEnabled = false;
+            }
+            else if (targetVector.x == -1 && targetVector.y == 0)
+            {
+                animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.FreeHangHopLeftState], 0.1f);
+                IsClimbMovementEnabled = false;
+            }
         }
         grabbedLedge = ledgeDetector.ReturnDownCastHit().transform.gameObject;
         
-        IsClimbMovementEnabled = false;
     }
 
     ///<summary>
@@ -357,6 +387,26 @@ public class ClimbingController : MonoBehaviour
             {
             }
         }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.FallingToFreeHangState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                rb.isKinematic = true;
+                animator.InterruptMatchTarget(false);
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+                animator.rootRotation = Quaternion.RotateTowards(animator.rootRotation, matchTargetRotationHanging, Time.fixedDeltaTime * 75);
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+                startNormalizedTime = 0;
+                targetNormalizedTime = 0.25f;
+                animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+            }
+        }
         else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.ClimbingOverState])
         {
             if (animatorState == AnimatorState.Enter)
@@ -412,7 +462,7 @@ public class ClimbingController : MonoBehaviour
                 grabbedLedge = null;
             }
         }
-        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.HangingBlendState])
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.BracedHangingBlendState])
         {
             if (animatorState == AnimatorState.Enter)
             {
@@ -420,7 +470,28 @@ public class ClimbingController : MonoBehaviour
             else if (animatorState == AnimatorState.Update)
             {
                 animator.rootRotation = Quaternion.RotateTowards(animator.rootRotation, matchTargetRotationHanging, Time.fixedDeltaTime * 75);
-
+                if (ledgeDetector.IsLedgeBraced() == false)
+                    animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Braced], false);
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+                startNormalizedTime = 0;
+                targetNormalizedTime = 1;
+                animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, ledgeWeightMask, startNormalizedTime, targetNormalizedTime);
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.FreedHangingBlendState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+                animator.rootRotation = Quaternion.RotateTowards(animator.rootRotation, matchTargetRotationHanging, Time.fixedDeltaTime * 75);
+                if (ledgeDetector.IsLedgeBraced() == true)
+                    animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Braced], true);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
                 startNormalizedTime = 0;
@@ -506,6 +577,86 @@ public class ClimbingController : MonoBehaviour
                 startNormalizedTime = 0.3f;
                 targetNormalizedTime = 0.7f;
                 animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+                IsClimbMovementEnabled = true;
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.FreeHangHopLeftState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                animator.InterruptMatchTarget(false);
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+                startNormalizedTime = 0.20f;
+                targetNormalizedTime = 0.55f;
+                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+                IsClimbMovementEnabled = true;
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.FreeHangHopRightState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                animator.InterruptMatchTarget(false);
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+                startNormalizedTime = 0.20f;
+                targetNormalizedTime = 0.55f;
+                animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+                IsClimbMovementEnabled = true;
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.FreeToBracedHangState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                animator.InterruptMatchTarget(false);
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+                startNormalizedTime = 0f;
+                targetNormalizedTime = 0.1f;
+                animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+                IsClimbMovementEnabled = true;
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.BracedToFreeState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                animator.InterruptMatchTarget(false);
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+                startNormalizedTime = 0f;
+                targetNormalizedTime = 0.1f;
+                animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
 
             }
             else if (animatorState == AnimatorState.Exit)
