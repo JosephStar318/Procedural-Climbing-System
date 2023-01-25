@@ -356,11 +356,12 @@ public class ClimbingController : MonoBehaviour
     /// <param name="currentTime">Current normalized time of the state</param>
     /// <param name="startNormalizedTime">Starting point in normalized time</param>
     /// <param name="endNormalizedTime">Ending point in normalized time</param>
-    private void MatchRotation(Quaternion matchRotation, float currentTime, float startNormalizedTime, float endNormalizedTime)
+    private void MatchRotation(Quaternion matchRotation, float currentTime, float startNormalizedTime, float endNormalizedTime, float length)
     {
+        float speedModifier = 90 / (length * (endNormalizedTime - startNormalizedTime));
         if(currentTime > startNormalizedTime && currentTime < endNormalizedTime)
         {
-            animator.rootRotation = Quaternion.RotateTowards(animator.rootRotation, matchRotation, Time.fixedDeltaTime * 90);
+            animator.rootRotation = Quaternion.RotateTowards(animator.rootRotation, matchRotation, Time.fixedDeltaTime * speedModifier);
         }
 
     }
@@ -376,6 +377,7 @@ public class ClimbingController : MonoBehaviour
             {
                 rb.isKinematic = true;
                 animator.InterruptMatchTarget(false);
+                Debug.Log(asInfo.length);
             }
             else if (animatorState == AnimatorState.Update)
             {
@@ -383,7 +385,7 @@ public class ClimbingController : MonoBehaviour
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
                 startNormalizedTime = 0;
-                targetNormalizedTime = 0.3f;
+                targetNormalizedTime = 0.4f;
                 animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
             }
             else if (animatorState == AnimatorState.Exit)
@@ -498,9 +500,9 @@ public class ClimbingController : MonoBehaviour
                 if (ledgeDetector.IsLedgeBraced() == false)
                     animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Braced], false);
                 if (animator.IsInTransition(0)) return;
-                if (animator.isMatchingTarget) return;
                 startNormalizedTime = 0;
                 targetNormalizedTime = 1;
+                //animator.InterruptMatchTarget();
                 animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, ledgeWeightMask, startNormalizedTime, targetNormalizedTime);
             }
             else if (animatorState == AnimatorState.Exit)
@@ -537,8 +539,8 @@ public class ClimbingController : MonoBehaviour
             }
             else if (animatorState == AnimatorState.Update)
             {
-                MatchRotation(matchTargetRotationHoping, asInfo.normalizedTime, startNormalizedTime, targetNormalizedTime);
-                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1);
+                MatchRotation(matchTargetRotationHoping, asInfo.normalizedTime, startNormalizedTime, targetNormalizedTime,asInfo.length);
+                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1, asInfo.length);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
                 animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
@@ -558,8 +560,8 @@ public class ClimbingController : MonoBehaviour
             }
             else if (animatorState == AnimatorState.Update)
             {
-                MatchRotation(matchTargetRotationHoping, asInfo.normalizedTime, startNormalizedTime, targetNormalizedTime);
-                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1);
+                MatchRotation(matchTargetRotationHoping, asInfo.normalizedTime, startNormalizedTime, targetNormalizedTime, asInfo.length);
+                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1, asInfo.length);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
                 animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
@@ -619,8 +621,8 @@ public class ClimbingController : MonoBehaviour
             }
             else if (animatorState == AnimatorState.Update)
             {
-                MatchRotation(matchTargetRotationHoping, asInfo.normalizedTime, startNormalizedTime, targetNormalizedTime);
-                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1);
+                MatchRotation(matchTargetRotationHoping, asInfo.normalizedTime, startNormalizedTime, targetNormalizedTime, asInfo.length);
+                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1, asInfo.length);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
                 animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
@@ -640,8 +642,8 @@ public class ClimbingController : MonoBehaviour
             }
             else if (animatorState == AnimatorState.Update)
             {
-                MatchRotation(matchTargetRotationHoping, asInfo.normalizedTime, startNormalizedTime, targetNormalizedTime);
-                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1);
+                MatchRotation(matchTargetRotationHoping, asInfo.normalizedTime, startNormalizedTime, targetNormalizedTime, asInfo.length);
+                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1, asInfo.length);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
                 animator.MatchTarget(matchTargetPositionHoping, matchTargetRotationHoping, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
@@ -664,7 +666,6 @@ public class ClimbingController : MonoBehaviour
                 startNormalizedTime = 0.1f;
                 targetNormalizedTime = 0.2f;
                 animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
-
             }
             else if (animatorState == AnimatorState.Exit)
             {

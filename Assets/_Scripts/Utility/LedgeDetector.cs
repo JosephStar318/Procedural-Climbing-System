@@ -115,7 +115,7 @@ public class LedgeDetector : MonoBehaviour
             Debug.DrawLine(forwardOrigin, forwardOrigin + originTransform.forward, Color.red);
 
             forwardDirectionXZ = Vector3.ProjectOnPlane(originTransform.forward, Vector3.up);
-            forwardHit = Physics.Raycast(forwardOrigin, forwardDirectionXZ, out forwardCastHit, 1f, ClimbableLayers);
+            forwardHit = Physics.Raycast(forwardOrigin, forwardDirectionXZ, out forwardCastHit, 1f, ObstacleLayers);
             if (forwardHit)
             {
                 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
@@ -163,7 +163,7 @@ public class LedgeDetector : MonoBehaviour
         float inflate = -0.05f;
         float upsweepDistance = downCastHit.point.y - transform.position.y;
         Vector3 upSweepDirection = transform.up;
-        Vector3 upSweepOrigin = transform.position;
+        Vector3 upSweepOrigin = transform.position - transform.forward;
         bool upSweepHit = CharacterSweep(
             position: upSweepOrigin,
             rotation: transform.rotation,
@@ -173,7 +173,7 @@ public class LedgeDetector : MonoBehaviour
             inflate: inflate
             );
 
-        Vector3 forwardSweepOrigin = transform.position + upSweepDirection * upsweepDistance;
+        Vector3 forwardSweepOrigin = upSweepOrigin + upSweepDirection * upsweepDistance;
         Vector3 forwardSweepVector = endPosition - forwardSweepOrigin;
         bool forwardSweepHit = CharacterSweep(
                 position: forwardSweepOrigin,
@@ -340,7 +340,7 @@ public class LedgeDetector : MonoBehaviour
             jumpCheckerTransform.position = Vector3.Lerp(
                 jumpCheckerTransform.position,
                 transform.TransformPoint(areaDiameter * new Vector3(moveVector.x, moveVector.y, 0)),
-                Time.fixedDeltaTime * 2
+                Time.fixedDeltaTime * 3
                 );
         }
         else
@@ -368,7 +368,7 @@ public class LedgeDetector : MonoBehaviour
     public bool IsLedgeBraced()
     {
         bracedRayOrigin = forwardCastHit.point + forwardNormalXZRotation * braceDetectionRayOffset;
-        if(Physics.Raycast(bracedRayOrigin, -forwardCastHit.normal,out bracedCastHit, 1f, ClimbableLayers))
+        if(Physics.Raycast(bracedRayOrigin, -forwardCastHit.normal,out bracedCastHit, 1f, ObstacleLayers))
         {
             IsBraced = true;
             return true;

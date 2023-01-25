@@ -30,6 +30,9 @@ public class IKController : MonoBehaviour
     [SerializeField] private Vector3 rightFootIKOffset;
     [Tooltip("Offset of the final IK position of the left foot")]
     [SerializeField] private Vector3 leftFootIKOffset;
+    [Space]
+    [Tooltip("Offset of the feet from the ground while not hanging")]
+    [SerializeField] private float groundDistance;
 
 
     private Vector3 rightHandRayOrigin = Vector3.zero;
@@ -60,10 +63,14 @@ public class IKController : MonoBehaviour
     private Transform rightFoot;
     private Transform leftFoot;
 
+    private float rightFootIKWeight;
+    private float leftFootIKWeight;
+
     private Animator animator;
     private LedgeDetector ledgeDetector;
     private PlayerController playerController;
 
+    
     private void Start()
     {
         animator = GetComponent<Animator>();
@@ -127,9 +134,9 @@ public class IKController : MonoBehaviour
         rightHandRayOrigin = rightHand.TransformPoint(rightHandRayOffset);
         leftHandRayOrigin = leftHand.TransformPoint(leftHandRayOffset);
 
-        rightHandPositionIK = rightHand.position;
-        leftHandPositionIK = leftHand.position;
-        
+        rightHandPositionIK = animator.GetIKPosition(AvatarIKGoal.RightHand);
+        leftHandPositionIK = animator.GetIKPosition(AvatarIKGoal.LeftHand);
+
 
         if (Physics.Raycast(rightHandRayOrigin, rightHand.forward, out rightHandRayHit, rightHandRayDistamce, ledgeDetector.ObstacleLayers))
         {
@@ -184,25 +191,30 @@ public class IKController : MonoBehaviour
         rightFootRotationIK = rightFoot.rotation;
         leftFootRotationIK = leftFoot.rotation;
 
-        if (Physics.Raycast(rightFootRayOrigin, rightFoot.up, out rightFootRayHit, rightFootRayDistamce, ledgeDetector.ObstacleLayers))
+        if (Physics.Raycast(rightFoot.position + Vector3.up, Vector3.down, out rightFootRayHit, 1.3f, ledgeDetector.ObstacleLayers))
         {
-            rightFootPositionIK = rightFootRayHit.point + Quaternion.LookRotation(rightFoot.up) * rightFootIKOffset;
+            rightFootPositionIK = rightFootRayHit.point;
+            rightFootPositionIK.y += groundDistance;
+            Vector3 forward = Vector3.ProjectOnPlane(transform.forward, rightFootRayHit.normal);
+            rightFootRotationIK = Quaternion.LookRotation(forward);
+            
+            animator.SetIKPosition(AvatarIKGoal.RightFoot, rightFootPositionIK);
+            animator.SetIKRotation(AvatarIKGoal.RightFoot, rightFootRotationIK);
         }
-        if (Physics.Raycast(leftFootRayOrigin, leftFoot.up, out leftFootRayHit, leftFootRayDistamce, ledgeDetector.ObstacleLayers))
+        if (Physics.Raycast(leftFoot.position + Vector3.up, Vector3.down, out leftFootRayHit, 1.3f, ledgeDetector.ObstacleLayers))
         {
-            leftFootPositionIK = leftFootRayHit.point + Quaternion.LookRotation(leftFoot.up) * leftFootIKOffset;
+            leftFootPositionIK = leftFootRayHit.point;
+            leftFootPositionIK.y += groundDistance;
+            Vector3 forward = Vector3.ProjectOnPlane(transform.forward, leftFootRayHit.normal);
+            leftFootRotationIK = Quaternion.LookRotation(forward);
+            animator.SetIKPosition(AvatarIKGoal.LeftFoot, leftFootPositionIK);
+            animator.SetIKRotation(AvatarIKGoal.LeftFoot, leftFootRotationIK);
         }
 
-        animator.SetIKPosition(AvatarIKGoal.RightFoot, rightFootPositionIK);
-        animator.SetIKPosition(AvatarIKGoal.LeftFoot, leftFootPositionIK);
+        animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, animator.GetFloat(HashManager.animatorHashDict[AnimatorVariables.RightFootIKWeight]));
+        animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, animator.GetFloat(HashManager.animatorHashDict[AnimatorVariables.LeftFootIKWeight]));
 
-        animator.SetIKRotation(AvatarIKGoal.RightFoot, rightFootRotationIK);
-        animator.SetIKRotation(AvatarIKGoal.LeftFoot, leftFootRotationIK);
-
-        animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 1);
-        animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, 1);
-
-        animator.SetIKRotationWeight(AvatarIKGoal.RightFoot, 1);
-        animator.SetIKRotationWeight(AvatarIKGoal.LeftFoot, 1);
+        animator.SetIKRotationWeight(AvatarIKGoal.RightFoot, animator.GetFloat(HashManager.animatorHashDict[AnimatorVariables.RightFootIKWeight]));
+        animator.SetIKRotationWeight(AvatarIKGoal.LeftFoot, animator.GetFloat(HashManager.animatorHashDict[AnimatorVariables.LeftFootIKWeight]));
     }
 }
