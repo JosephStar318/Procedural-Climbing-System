@@ -6220,7 +6220,7 @@ MonoBehaviour:
   minStepHeight: 0
   climbOriginDown: {x: 0, y: 2.7, z: 0.3}
   endOffset: {x: 0, y: 0.1, z: 0}
-  bracedHandOffset: {x: 0, y: 0, z: 0}
+  bracedHandOffset: {x: 0, y: 0.03, z: -0.04}
   freeHandOffset: {x: 0, y: 0.05, z: -0.05}
   penetrationOffset: 1.1
   maxCornerAngle: 90
@@ -6698,8 +6698,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1135866775}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8.0803, y: 4.34, z: -1.4607}
-  m_LocalScale: {x: 0.22, y: 0.21099909, z: 4.056208}
+  m_LocalPosition: {x: -6.2174, y: 4.34, z: -1.4607}
+  m_LocalScale: {x: 3.945832, y: 0.21099909, z: 4.056208}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 919490753}
@@ -12404,7 +12404,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2071576710}
-  m_LocalRotation: {x: -0.03336914, y: 0.95111215, z: -0.110842556, w: -0.2863322}
+  m_LocalRotation: {x: -0.033369135, y: 0.95111215, z: -0.11084254, w: -0.2863322}
   m_LocalPosition: {x: -9.201737, y: 4.98, z: 2.1152031}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -13479,6 +13479,7 @@ GameObject:
   - component: {fileID: 1111890716}
   - component: {fileID: 1111890717}
   - component: {fileID: 5866666020460911248}
+  - component: {fileID: 5866666020460911249}
   m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
@@ -14791,6 +14792,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8ea1576de63c814bb5d8b6216f9bf07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &5866666020460911249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132148460477007}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da6f20902a4b77a4199166dd0e238f0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  handIKEnabled: 0
+  footIKEnabled: 0
+  rightHandRayOffset: {x: 0, y: 0, z: -0.1}
+  leftHandRayOffset: {x: 0, y: 0, z: -0.1}
+  rightHandIKOffset: {x: 0, y: 0, z: 0}
+  leftHandIKOffset: {x: 0, y: 0, z: 0}
+  rightFootRayOffset: {x: 0, y: -0.04, z: 0.06}
+  leftFootRayOffset: {x: 0, y: -0.04, z: 0.06}
+  rightFootIKOffset: {x: 0, y: 0, z: -0.16}
+  leftFootIKOffset: {x: 0, y: 0, z: -0.16}
 --- !u!4 &5901452234278146678
 Transform:
   m_ObjectHideFlags: 0
@@ -14958,7 +14981,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5932098769936415396}
-  m_LocalRotation: {x: -0.000000011175871, y: 0.7901305, z: -0.18669924, w: 0.5838127}
+  m_LocalRotation: {x: -0.000000016763806, y: 0.7901305, z: -0.18669924, w: 0.5838127}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0

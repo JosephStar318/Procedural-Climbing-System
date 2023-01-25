@@ -36,6 +36,7 @@ public static class HashManager
         AddToAnimatorHash(AnimatorVariables.FreeHangHopLeftState, "Free Hang Hop Left");
         AddToAnimatorHash(AnimatorVariables.BracedToFreeState, "Braced To Free");
         AddToAnimatorHash(AnimatorVariables.FreeToBracedHangState, "Free To Braced");
+        AddToAnimatorHash(AnimatorVariables.FreeHangClimbOverState, "Free Hang Climb Over");
     }
 
     public static void AddToAnimatorHash(AnimatorVariables av, string hashName)
@@ -76,5 +77,6 @@ public enum AnimatorVariables
     FreeHangHopRightState,
     FreeHangHopLeftState,
     BracedToFreeState,
-    FreeToBracedHangState
+    FreeToBracedHangState,
+    FreeHangClimbOverState
 }

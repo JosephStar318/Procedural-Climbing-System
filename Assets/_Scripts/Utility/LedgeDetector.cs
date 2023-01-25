@@ -52,6 +52,8 @@ public class LedgeDetector : MonoBehaviour
     private Rigidbody rb;
 
     public bool IsBraced { get => isBraced; set => isBraced = value; }
+    public LayerMask ObstacleLayers { get => obstacleLayers; set => obstacleLayers = value; }
+    public LayerMask ClimbableLayers { get => climbableLayers; set => climbableLayers = value; }
 
     private void Start()
     {
@@ -105,7 +107,7 @@ public class LedgeDetector : MonoBehaviour
 
         Debug.DrawLine(downOrigin, downOrigin + Vector3.down, Color.red);
 
-        downHit = Physics.SphereCast(downOrigin, 0.2f, downDirection, out downCastHit, climbOriginDown.y - minStepHeight, climbableLayers);
+        downHit = Physics.SphereCast(downOrigin, 0.2f, downDirection, out downCastHit, climbOriginDown.y - minStepHeight, ClimbableLayers);
 
         if (downHit)
         {
@@ -113,7 +115,7 @@ public class LedgeDetector : MonoBehaviour
             Debug.DrawLine(forwardOrigin, forwardOrigin + originTransform.forward, Color.red);
 
             forwardDirectionXZ = Vector3.ProjectOnPlane(originTransform.forward, Vector3.up);
-            forwardHit = Physics.Raycast(forwardOrigin, forwardDirectionXZ, out forwardCastHit, 1f, climbableLayers);
+            forwardHit = Physics.Raycast(forwardOrigin, forwardDirectionXZ, out forwardCastHit, 1f, ClimbableLayers);
             if (forwardHit)
             {
                 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
@@ -167,7 +169,7 @@ public class LedgeDetector : MonoBehaviour
             rotation: transform.rotation,
             direction: upSweepDirection,
             distance: upsweepDistance,
-            layerMask: obstacleLayers,
+            layerMask: ObstacleLayers,
             inflate: inflate
             );
 
@@ -178,7 +180,7 @@ public class LedgeDetector : MonoBehaviour
                 rotation: transform.rotation,
                 direction: forwardSweepVector.normalized,
                 distance: forwardSweepVector.magnitude,
-                layerMask: obstacleLayers,
+                layerMask: ObstacleLayers,
                 inflate: inflate
             );
         if (!upSweepHit && !forwardSweepHit)
@@ -243,20 +245,20 @@ public class LedgeDetector : MonoBehaviour
         rightSideLedgeRayOrigin = forwardCastHit.point + Quaternion.LookRotation(transform.right) * rightSideRayOffset;
 
 
-        if(moveDir == 1)
+        if(moveDir > 0.5f)
         {
-            isRightSideHit = Physics.Raycast(rightSideLedgeRayOrigin, -transform.right, out sideCastHit, maxSideHitDistance, climbableLayers);
+            isRightSideHit = Physics.Raycast(rightSideLedgeRayOrigin, -transform.right, out sideCastHit, maxSideHitDistance, ClimbableLayers);
             if (isRightSideHit)
             {
                 //if there is a hit but if some other platform colliding to near edge 
-                if(Physics.OverlapSphere(rightSideLedgeRayOrigin, 0.1f, climbableLayers).Length != 0)
+                if(Physics.OverlapSphere(rightSideLedgeRayOrigin, 0.1f, ClimbableLayers).Length != 0)
                 {
                     return true;
                 }
                 else
                 {
                     //corner check
-                    if (Physics.Raycast(rightCornerRayOrigin, -transform.right, out sideCastHit, maxSideHitDistance, obstacleLayers))
+                    if (Physics.Raycast(rightCornerRayOrigin, -transform.right, out sideCastHit, maxSideHitDistance, ObstacleLayers))
                     {
                         cornerAngle = Vector3.Angle(forwardCastHit.normal, sideCastHit.normal);
                         if (minCornerAngle <= cornerAngle && cornerAngle <= maxCornerAngle)
@@ -270,7 +272,7 @@ public class LedgeDetector : MonoBehaviour
                             return true;
                         }
                     }
-                    else if (Physics.OverlapSphere(rightCornerRayOrigin, 0.2f, climbableLayers).Length != 0)
+                    else if (Physics.OverlapSphere(rightCornerRayOrigin, 0.2f, ClimbableLayers).Length != 0)
                     {
                         //if there is any collision near corner it means player is moving at the edge of a circle
                         return true;
@@ -282,20 +284,20 @@ public class LedgeDetector : MonoBehaviour
                 return true;
             }
         }
-        else if(moveDir == -1)
+        else if(moveDir < -0.5f)
         {
-            isLeftSideHit = Physics.Raycast(leftSideLedgeRayOrigin, transform.right, out sideCastHit, maxSideHitDistance, climbableLayers);
+            isLeftSideHit = Physics.Raycast(leftSideLedgeRayOrigin, transform.right, out sideCastHit, maxSideHitDistance, ClimbableLayers);
             if (isLeftSideHit)
             {
                 //if there is a hit but if some other platform colliding to near edge 
-                if (Physics.OverlapSphere(leftSideLedgeRayOrigin, 0.1f, climbableLayers).Length != 0)
+                if (Physics.OverlapSphere(leftSideLedgeRayOrigin, 0.1f, ClimbableLayers).Length != 0)
                 {
                     return true;
                 }
                 else
                 {
                     //corner check
-                    if (Physics.Raycast(leftCornerRayOrigin, transform.right, out sideCastHit, maxSideHitDistance, obstacleLayers))
+                    if (Physics.Raycast(leftCornerRayOrigin, transform.right, out sideCastHit, maxSideHitDistance, ObstacleLayers))
                     {
                         cornerAngle = Vector3.Angle(forwardCastHit.normal, sideCastHit.normal);
                         Debug.Log(cornerAngle);
@@ -310,7 +312,7 @@ public class LedgeDetector : MonoBehaviour
                             return true;
                         }
                     }
-                    else if (Physics.OverlapSphere(leftCornerRayOrigin, 0.2f, climbableLayers).Length != 0)
+                    else if (Physics.OverlapSphere(leftCornerRayOrigin, 0.2f, ClimbableLayers).Length != 0)
                     {
                         //if there is any collision near corner it means player is moving at the edge of a circle
                         return true;
@@ -366,7 +368,7 @@ public class LedgeDetector : MonoBehaviour
     public bool IsLedgeBraced()
     {
         bracedRayOrigin = forwardCastHit.point + forwardNormalXZRotation * braceDetectionRayOffset;
-        if(Physics.Raycast(bracedRayOrigin, -forwardCastHit.normal,out bracedCastHit, 1f, climbableLayers))
+        if(Physics.Raycast(bracedRayOrigin, -forwardCastHit.normal,out bracedCastHit, 1f, ClimbableLayers))
         {
             IsBraced = true;
             return true;
