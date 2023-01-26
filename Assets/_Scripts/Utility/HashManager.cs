@@ -37,6 +37,7 @@ public static class HashManager
         AddToAnimatorHash(AnimatorVariables.BracedToFreeState, "Braced To Free");
         AddToAnimatorHash(AnimatorVariables.FreeToBracedHangState, "Free To Braced");
         AddToAnimatorHash(AnimatorVariables.FreeHangClimbOverState, "Free Hang Climb Over");
+        AddToAnimatorHash(AnimatorVariables.DropToFreeHangState, "Drop To Free Hang");
         AddToAnimatorHash(AnimatorVariables.RightFootIKWeight, "Right Foot IK Weight");
         AddToAnimatorHash(AnimatorVariables.LeftFootIKWeight, "Left Foot IK Weight");
         AddToAnimatorHash(AnimatorVariables.RightHandWeight, "Right Hand IK Weight");
@@ -83,6 +84,7 @@ public enum AnimatorVariables
     BracedToFreeState,
     FreeToBracedHangState,
     FreeHangClimbOverState,
+    DropToFreeHangState,
     RightFootIKWeight,
     LeftFootIKWeight,
     RightHandWeight,

@@ -12,18 +12,21 @@ public class LedgeDetector : MonoBehaviour
     [Header("Ledge Settings")]
     [SerializeField] private LayerMask climbableLayers;
     [SerializeField] private LayerMask obstacleLayers;
+    [Space]
     [SerializeField] private float wallAngleMax = 45f;
     [SerializeField] private float groundAngleMax = 45f;
     [SerializeField] private float minStepHeight = 0;
+    [SerializeField] float maxCornerAngle = 90;
+    [SerializeField] float minCornerAngle = 25;
     [Space]
     [SerializeField] private Vector3 climbOriginDown = new Vector3(0, 2, 0.75f);
     [SerializeField] private Vector3 endOffset = new Vector3(0,0.1f,0);
-    [SerializeField] private Vector3 bracedHandOffset = new Vector3(0, 0, 0);
-    [SerializeField] private Vector3 freeHandOffset = new Vector3(0, 0, 0);
+    [SerializeField] private Vector3 bracedRightHandOffset = new Vector3(0, 0.03f, -0.04f);
+    [SerializeField] private Vector3 bracedLeftHandOffset = new Vector3(0, 0.03f, -0.04f);
+    [SerializeField] private Vector3 freeRightHandOffset = new Vector3(0, 0.05f, 0.05f);
+    [SerializeField] private Vector3 freeLeftHandOffset = new Vector3(0, 0.05f, 0.05f);
     [SerializeField] private float penetrationOffset = 1.1f;
     [Space]
-    [SerializeField] float maxCornerAngle = 90;
-    [SerializeField] float minCornerAngle = 25;
     [SerializeField] private Vector3 leftSideRayOffset;
     [SerializeField] private Vector3 rightSideRayOffset;
     [SerializeField] private Vector3 braceDetectionRayOffset;
@@ -52,7 +55,8 @@ public class LedgeDetector : MonoBehaviour
     private Rigidbody rb;
 
     public bool IsBraced { get => isBraced; set => isBraced = value; }
-    public Vector3 ForwardCastHitPoint { get; private set; }
+    public RaycastHit ForwardCastHit { get; private set; }
+    public RaycastHit DownCastHit { get; private set; }
     public LayerMask ObstacleLayers { get => obstacleLayers; set => obstacleLayers = value; }
     public LayerMask ClimbableLayers { get => climbableLayers; set => climbableLayers = value; }
 
@@ -112,6 +116,7 @@ public class LedgeDetector : MonoBehaviour
 
         if (downHit)
         {
+            DownCastHit = downCastHit;
             Vector3 forwardOrigin = new Vector3(originTransform.position.x, downCastHit.point.y - 0.1f, originTransform.position.z) + Quaternion.LookRotation(transform.forward) * Vector3.back * 0.5f;
             Debug.DrawLine(forwardOrigin, forwardOrigin + originTransform.forward, Color.red);
 
@@ -119,7 +124,7 @@ public class LedgeDetector : MonoBehaviour
             forwardHit = Physics.Raycast(forwardOrigin, forwardDirectionXZ, out forwardCastHit, 1f, ObstacleLayers);
             if (forwardHit)
             {
-                ForwardCastHitPoint = forwardCastHit.point;
+                ForwardCastHit = forwardCastHit;
                 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
                 groundAngle = Vector3.Angle(downCastHit.normal, Vector3.up);
                 wallAngle = Vector3.Angle(-forwardNormalXZ, forwardDirectionXZ);
@@ -334,6 +339,28 @@ public class LedgeDetector : MonoBehaviour
         return false;
     }
 
+    public bool CheckDropLedge(float maxHeight)
+    {
+        Vector3 dropLedgeOrigin = transform.position + transform.forward;
+
+        if(Physics.OverlapSphere(dropLedgeOrigin, 0.1f).Length == 0)
+        {
+            GameObject obj = new GameObject();
+            obj.transform.position = dropLedgeOrigin;
+            obj.transform.LookAt(transform);
+
+            if(CanClimb(obj.transform))
+            {
+                return true;
+            }
+        }
+        else
+        {
+            return false;
+        }
+
+        return true;
+    }
 
     public bool CheckJumpableLedgeInMoveDirection(Vector2 moveVector, float areaDiameter)
     {
@@ -369,8 +396,8 @@ public class LedgeDetector : MonoBehaviour
 
     public bool IsLedgeBraced()
     {
-        bracedRayOrigin = forwardCastHit.point + forwardNormalXZRotation * braceDetectionRayOffset;
-        if(Physics.Raycast(bracedRayOrigin, -forwardCastHit.normal,out bracedCastHit, 1f, ObstacleLayers))
+        bracedRayOrigin = ForwardCastHit.point + forwardNormalXZRotation * braceDetectionRayOffset;
+        if(Physics.Raycast(bracedRayOrigin, -ForwardCastHit.normal,out bracedCastHit, 1f, ObstacleLayers))
         {
             IsBraced = true;
             return true;
@@ -386,12 +413,23 @@ public class LedgeDetector : MonoBehaviour
     /// </summary>
     /// <param name="pos">Matched position</param>
     /// <param name="rot">Matched rotation</param>
-    public void SetTargetMatchingToLedge(out Vector3 pos, out Quaternion rot)
+    public void SetTargetMatchingToLedge(out Vector3 pos, out Quaternion rot, AvatarTarget avatarTarget)
     {
-        Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
-        forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
-        pos = forwardCastHit.point + forwardNormalXZRotation * (IsBraced ? bracedHandOffset : freeHandOffset);
-        rot = forwardNormalXZRotation;
+        if (avatarTarget == AvatarTarget.RightHand)
+        {
+            Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(ForwardCastHit.normal, Vector3.up);
+            forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
+            pos = ForwardCastHit.point + forwardNormalXZRotation * (IsBraced ? bracedRightHandOffset : freeRightHandOffset);
+            rot = forwardNormalXZRotation;
+        }
+        else
+        {
+            Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(ForwardCastHit.normal, Vector3.up);
+            forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
+            pos = ForwardCastHit.point + forwardNormalXZRotation * (IsBraced ? bracedLeftHandOffset : freeLeftHandOffset);
+            rot = forwardNormalXZRotation;
+        }
+       
     }
 
     /// <summary>
@@ -400,13 +438,24 @@ public class LedgeDetector : MonoBehaviour
     /// <param name="hit">Hit point</param>
     /// <param name="pos">Matched position</param>
     /// <param name="rot">Matched rotation</param>
-    public void SetTargetMatchingToHitPoint(RaycastHit hit, out Vector3 pos, out Quaternion rot)
+    public void SetTargetMatchingToHitPoint(RaycastHit hit, out Vector3 pos, out Quaternion rot, AvatarTarget avatarTarget)
     {
-        Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(hit.normal, Vector3.up);
-        forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
-        pos = hit.point + forwardNormalXZRotation * (IsBraced ? bracedHandOffset : freeHandOffset);
-        rot = forwardNormalXZRotation;
+        if (avatarTarget == AvatarTarget.RightHand)
+        {
+            Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(hit.normal, Vector3.up);
+            forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
+            pos = hit.point + forwardNormalXZRotation * (IsBraced ? bracedRightHandOffset : freeRightHandOffset);
+            rot = forwardNormalXZRotation;
+        }
+        else
+        {
+            Vector3 forwardNormalXZ = Vector3.ProjectOnPlane(hit.normal, Vector3.up);
+            forwardNormalXZRotation = Quaternion.LookRotation(-forwardNormalXZ, Vector3.up);
+            pos = hit.point + forwardNormalXZRotation* (IsBraced? bracedLeftHandOffset : freeLeftHandOffset);
+            rot = forwardNormalXZRotation;
+        }
     }
+        
 
     /// <summary>
     /// Sets target matching position and rotation for endpoint

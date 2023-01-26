@@ -9,8 +9,6 @@ using UnityEngine.InputSystem.Interactions;
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
 {
-    public static event Action OnDropPressed;
-
     #region Physic Related
     [Header("Physics")]
     [SerializeField] private float jumpForce = 100f;
@@ -67,14 +65,12 @@ public class PlayerController : MonoBehaviour
     private void OnEnable()
     {
         PlayerInputHelper.OnJump += OnJump;
-        PlayerInputHelper.OnDrop += OnDrop;
         PlayerInputHelper.OnMove += OnMove;
         PlayerInputHelper.OnSprint += OnSprint;
     }
     private void OnDisable()
     {
         PlayerInputHelper.OnJump -= OnJump;
-        PlayerInputHelper.OnDrop -= OnDrop;
         PlayerInputHelper.OnMove -= OnMove;
         PlayerInputHelper.OnSprint -= OnSprint;
     }
@@ -235,23 +231,6 @@ public class PlayerController : MonoBehaviour
                 jumpPoint = transform.position;
                 
                 animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Jump]);
-            }
-        }
-    }
-
-    ///<summary>
-    /// Triggered when input for drop key is changed
-    ///</summary>
-    private void OnDrop(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-        {
-            if (context.ReadValueAsButton())
-            {
-                if (IsHanging)
-                {
-                    OnDropPressed.Invoke();
-                }
             }
         }
     }

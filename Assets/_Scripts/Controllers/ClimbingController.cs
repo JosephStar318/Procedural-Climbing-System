@@ -87,7 +87,7 @@ public class ClimbingController : MonoBehaviour
         if (ledgeDetector.CanClimb(transform))
         {
             //matching target to keep alligned with the wall
-            ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging);
+            ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging, matchedBodyPart);
 
             if (playerController.IsHanging || playerController.IsPlayerEnabled == false) return;
             RaycastHit downCastHit = ledgeDetector.ReturnDownCastHit();
@@ -148,7 +148,7 @@ public class ClimbingController : MonoBehaviour
         }
         else if(isCorner)
         {
-            ledgeDetector.SetTargetMatchingToHitPoint(sideCastHit, out matchTargetPositionHoping, out matchTargetRotationHoping);
+            ledgeDetector.SetTargetMatchingToHitPoint(sideCastHit, out matchTargetPositionHoping, out matchTargetRotationHoping, matchedBodyPart);
             Hop();
 
             if(targetVector.x == 0 && targetVector.y == 0)
@@ -165,7 +165,7 @@ public class ClimbingController : MonoBehaviour
             {
                 if (grabbedLedge != ledgeDetector.ReturnDownCastHit().transform.gameObject)
                 {
-                    ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHoping, out matchTargetRotationHoping);
+                    ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHoping, out matchTargetRotationHoping, matchedBodyPart);
                     Hop();
                 }
             }
@@ -211,7 +211,7 @@ public class ClimbingController : MonoBehaviour
     {
         if (grabbedLedge == ledgeDetector.ReturnDownCastHit().transform.gameObject) return;
 
-        ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging);
+        ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging, matchedBodyPart);
         
         if(ledgeDetector.IsLedgeBraced() == true)
         {
@@ -345,10 +345,21 @@ public class ClimbingController : MonoBehaviour
     {
         if(context.performed && context.ReadValueAsButton())
         {
-            animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Drop]);
-            playerController.IsHanging = false;
-            rb.isKinematic = false;
-            rb.AddForce(-transform.forward * 25, ForceMode.Acceleration);
+            if(playerController.IsHanging)
+            {
+                animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Drop]);
+                playerController.IsHanging = false;
+                rb.isKinematic = false;
+                rb.AddForce(-transform.forward * 25, ForceMode.Acceleration);
+            }
+            else if(ledgeDetector.CheckDropLedge(maxVaultHeight))
+            {
+                ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging, matchedBodyPart);
+                animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.DropToFreeHangState], 0.1f);
+                playerController.IsHanging = true;
+                playerController.DisablePlayerController();
+                rb.isKinematic = true;
+            }
         }
     }
 
@@ -701,6 +712,25 @@ public class ClimbingController : MonoBehaviour
                 rb.isKinematic = true;
                 rb.useGravity = true;
                 IsClimbMovementEnabled = true;
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.DropToFreeHangState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                animator.InterruptMatchTarget(false);
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+                startNormalizedTime = 0.1f;
+                targetNormalizedTime = 0.45f;
+                animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
             }
         }
     }

@@ -102,7 +102,7 @@ public class IKController : MonoBehaviour
     }
     private void Update()
     {
-        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHitPoint) + handRayOffset;
+        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHit.point) + handRayOffset;
         Vector3 localright = transform.InverseTransformPoint(rightHand.position);
         Vector3 localleft = transform.InverseTransformPoint(leftHand.position);
 
@@ -135,9 +135,13 @@ public class IKController : MonoBehaviour
                 FootIK();
         }
     }
+
+    /// <summary>
+    /// Inverse Kinematics implementaition for hands while hanging
+    /// </summary>
     private void HandIK()
     {
-        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHitPoint) + handRayOffset;
+        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHit.point) + handRayOffset;
         Vector3 localright = transform.InverseTransformPoint(rightHand.position);
         Vector3 localleft = transform.InverseTransformPoint(leftHand.position);
 
@@ -167,15 +171,8 @@ public class IKController : MonoBehaviour
                 rightHandPositionIK = rightHandRayHit.point + Quaternion.LookRotation(transform.forward) * rightHandIKOffset;
                 animator.SetIKPosition(AvatarIKGoal.RightHand, rightHandPositionIK);
             }
-            else
-            {
-                //animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 0);
-            }
         }
-        else
-        {
-                //animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 0);
-        }
+
         if (Physics.Raycast(leftHandRayOrigin, Vector3.down, out leftHandRayHit, handRayDistance, ledgeDetector.ObstacleLayers))
         {
             Vector3 forwardLeftHandOrigin = leftHandRayHit.point + Quaternion.LookRotation(transform.forward) * Vector3.back * 0.5f;
@@ -185,20 +182,15 @@ public class IKController : MonoBehaviour
                 leftHandPositionIK = leftHandRayHit.point + Quaternion.LookRotation(transform.forward) * leftHandIKOffset;
                 animator.SetIKPosition(AvatarIKGoal.LeftHand, leftHandPositionIK);
             }
-            else
-            {
-                //animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 0);
-            }
-        }
-        else
-        {
-                //animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 0);
         }
 
         animator.SetIKPositionWeight(AvatarIKGoal.RightHand, animator.GetFloat(HashManager.animatorHashDict[AnimatorVariables.RightHandWeight]));
         animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, animator.GetFloat(HashManager.animatorHashDict[AnimatorVariables.LeftHandWeight]));
     }
 
+    /// <summary>
+    /// Inverse Kinematics implementaition for feet while hanging
+    /// </summary>
     private void HangingFootIK()
     {
         animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 0);
@@ -226,6 +218,9 @@ public class IKController : MonoBehaviour
         animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, 1);
     }
 
+    /// <summary>
+    /// Inverse Kinematics implementaition for feet while not hanging
+    /// </summary>
     private void FootIK()
     {
         rightFootRayOrigin = rightFoot.TransformPoint(rightFootRayOffset);
