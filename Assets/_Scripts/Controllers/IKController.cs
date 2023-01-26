@@ -10,10 +10,8 @@ public class IKController : MonoBehaviour
     [SerializeField] private bool footIKEnabled;
 
     [Header("Hand")]
-    [Tooltip("Offset of the ray releative to right hand")]
-    [SerializeField] private Vector3 rightHandRayOffset;
-    [Tooltip("Offset of the ray releative to left hand")]
-    [SerializeField] private Vector3 leftHandRayOffset;
+    [Tooltip("Offset of the ray releative to hands")]
+    [SerializeField] private Vector3 handRayOffset;
     [Space]
     [Tooltip("Offset of the final IK position of the right hand")]
     [SerializeField] private Vector3 rightHandIKOffset;
@@ -45,10 +43,9 @@ public class IKController : MonoBehaviour
     private Vector3 rightFootPositionIK;
     private Vector3 leftFootPositionIK;
 
-    private float rightHandRayDistamce;
-    private float leftHandRayDistamce;
-    private float rightFootRayDistamce;
-    private float leftFootRayDistamce;
+    private float handRayDistance;
+    private float rightFootRayDistance;
+    private float leftFootRayDistance;
 
     private Quaternion rightFootRotationIK;
     private Quaternion leftFootRotationIK;
@@ -82,10 +79,9 @@ public class IKController : MonoBehaviour
         rightFoot = animator.GetBoneTransform(HumanBodyBones.RightFoot);
         leftFoot = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
 
-        rightHandRayDistamce = rightHandRayOffset.magnitude + 0.2f;
-        leftHandRayDistamce = leftHandRayOffset.magnitude + 0.2f;
-        rightFootRayDistamce = rightFootRayOffset.magnitude + 0.2f;
-        leftFootRayDistamce = leftFootRayOffset.magnitude + 0.2f;
+        handRayDistance = handRayOffset.magnitude + 0.2f;
+        rightFootRayDistance = rightFootRayOffset.magnitude + 0.2f;
+        leftFootRayDistance = leftFootRayOffset.magnitude + 0.2f;
     }
 
     private void OnDrawGizmos()
@@ -98,16 +94,29 @@ public class IKController : MonoBehaviour
 
         if(rightHand != null)
         {
-            Gizmos.DrawRay(rightHandRayOrigin, rightHand.forward);
-            Gizmos.DrawRay(leftHandRayOrigin, leftHand.forward);
+            Gizmos.DrawRay(rightHandRayOrigin, Vector3.down);
+            Gizmos.DrawRay(leftHandRayOrigin, Vector3.down);
             Gizmos.DrawRay(rightFootRayOrigin, rightFoot.up);
             Gizmos.DrawRay(leftFootRayOrigin, leftFoot.up);
         }
     }
     private void Update()
     {
-        rightHandRayOrigin = rightHand.TransformPoint(rightHandRayOffset);
-        leftHandRayOrigin = leftHand.TransformPoint(leftHandRayOffset);
+        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHitPoint) + handRayOffset;
+        Vector3 localright = transform.InverseTransformPoint(rightHand.position);
+        Vector3 localleft = transform.InverseTransformPoint(leftHand.position);
+
+        rightHandRayOrigin = transform.TransformPoint(new Vector3(
+            localright.x,
+            localOffsettedHit.y,
+            localOffsettedHit.z
+            ));
+        leftHandRayOrigin = transform.TransformPoint(new Vector3(
+            localleft.x,
+            localOffsettedHit.y,
+            localOffsettedHit.z
+            ));
+
         rightFootRayOrigin = rightFoot.TransformPoint(rightFootRayOffset);
         leftFootRayOrigin = leftFoot.TransformPoint(leftFootRayOffset);
     }
@@ -128,30 +137,66 @@ public class IKController : MonoBehaviour
     }
     private void HandIK()
     {
+        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHitPoint) + handRayOffset;
+        Vector3 localright = transform.InverseTransformPoint(rightHand.position);
+        Vector3 localleft = transform.InverseTransformPoint(leftHand.position);
+
+        rightHandRayOrigin = transform.TransformPoint(new Vector3(
+            localright.x,
+            localOffsettedHit.y,
+            localOffsettedHit.z
+            ));
+        leftHandRayOrigin = transform.TransformPoint(new Vector3(
+            localleft.x,
+            localOffsettedHit.y,
+            localOffsettedHit.z
+            ));
+        
         animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 0);
         animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 0);
-
-        rightHandRayOrigin = rightHand.TransformPoint(rightHandRayOffset);
-        leftHandRayOrigin = leftHand.TransformPoint(leftHandRayOffset);
 
         rightHandPositionIK = animator.GetIKPosition(AvatarIKGoal.RightHand);
         leftHandPositionIK = animator.GetIKPosition(AvatarIKGoal.LeftHand);
 
-
-        if (Physics.Raycast(rightHandRayOrigin, rightHand.forward, out rightHandRayHit, rightHandRayDistamce, ledgeDetector.ObstacleLayers))
+        if (Physics.Raycast(rightHandRayOrigin, Vector3.down, out rightHandRayHit, handRayDistance, ledgeDetector.ObstacleLayers))
         {
-            rightHandPositionIK = rightHandRayHit.point + Quaternion.LookRotation(rightHand.forward) * rightHandIKOffset;
+            Vector3 forwardRightHandOrigin = rightHandRayHit.point + Quaternion.LookRotation(transform.forward) * Vector3.back * 0.5f;
+            forwardRightHandOrigin.y -= 0.1f;
+            if (Physics.Raycast(forwardRightHandOrigin, transform.forward, out rightHandRayHit, handRayDistance, ledgeDetector.ObstacleLayers))
+            {
+                rightHandPositionIK = rightHandRayHit.point + Quaternion.LookRotation(transform.forward) * rightHandIKOffset;
+                animator.SetIKPosition(AvatarIKGoal.RightHand, rightHandPositionIK);
+            }
+            else
+            {
+                //animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 0);
+            }
         }
-        if (Physics.Raycast(leftHandRayOrigin, leftHand.forward, out leftHandRayHit, leftHandRayDistamce, ledgeDetector.ObstacleLayers))
+        else
         {
-            leftHandPositionIK = leftHandRayHit.point + Quaternion.LookRotation(leftHand.forward) * leftHandIKOffset;
+                //animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 0);
+        }
+        if (Physics.Raycast(leftHandRayOrigin, Vector3.down, out leftHandRayHit, handRayDistance, ledgeDetector.ObstacleLayers))
+        {
+            Vector3 forwardLeftHandOrigin = leftHandRayHit.point + Quaternion.LookRotation(transform.forward) * Vector3.back * 0.5f;
+            forwardLeftHandOrigin.y -= 0.1f;
+            if (Physics.Raycast(forwardLeftHandOrigin, transform.forward, out leftHandRayHit, handRayDistance, ledgeDetector.ObstacleLayers))
+            {
+                leftHandPositionIK = leftHandRayHit.point + Quaternion.LookRotation(transform.forward) * leftHandIKOffset;
+                animator.SetIKPosition(AvatarIKGoal.LeftHand, leftHandPositionIK);
+            }
+            else
+            {
+                //animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 0);
+            }
+        }
+        else
+        {
+                //animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 0);
         }
 
-        animator.SetIKPosition(AvatarIKGoal.RightHand, rightHandPositionIK);
-        animator.SetIKPosition(AvatarIKGoal.LeftHand, leftHandPositionIK);
-
-        animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 1);
-        animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 1);
+        animator.SetIKPositionWeight(AvatarIKGoal.RightHand, animator.GetFloat(HashManager.animatorHashDict[AnimatorVariables.RightHandWeight]));
+        animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, animator.GetFloat(HashManager.animatorHashDict[AnimatorVariables.LeftHandWeight]));
     }
 
     private void HangingFootIK()
@@ -165,11 +210,11 @@ public class IKController : MonoBehaviour
         rightFootPositionIK = animator.GetIKPosition(AvatarIKGoal.RightFoot);
         leftFootPositionIK = animator.GetIKPosition(AvatarIKGoal.LeftFoot);
 
-        if (Physics.Raycast(rightFootRayOrigin,rightFoot.up, out rightFootRayHit, rightFootRayDistamce, ledgeDetector.ObstacleLayers))
+        if (Physics.Raycast(rightFootRayOrigin,rightFoot.up, out rightFootRayHit, rightFootRayDistance, ledgeDetector.ObstacleLayers))
         {
             rightFootPositionIK = rightFootRayHit.point + Quaternion.LookRotation(rightFoot.up) * rightFootIKOffset;
         }
-        if(Physics.Raycast(leftFootRayOrigin, leftFoot.up, out leftFootRayHit, leftFootRayDistamce, ledgeDetector.ObstacleLayers))
+        if(Physics.Raycast(leftFootRayOrigin, leftFoot.up, out leftFootRayHit, leftFootRayDistance, ledgeDetector.ObstacleLayers))
         {
             leftFootPositionIK = leftFootRayHit.point + Quaternion.LookRotation(leftFoot.up) * leftFootIKOffset;
         }

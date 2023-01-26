@@ -39,6 +39,8 @@ public static class HashManager
         AddToAnimatorHash(AnimatorVariables.FreeHangClimbOverState, "Free Hang Climb Over");
         AddToAnimatorHash(AnimatorVariables.RightFootIKWeight, "Right Foot IK Weight");
         AddToAnimatorHash(AnimatorVariables.LeftFootIKWeight, "Left Foot IK Weight");
+        AddToAnimatorHash(AnimatorVariables.RightHandWeight, "Right Hand IK Weight");
+        AddToAnimatorHash(AnimatorVariables.LeftHandWeight, "Left Hand IK Weight");
     }
 
     public static void AddToAnimatorHash(AnimatorVariables av, string hashName)
@@ -83,4 +85,6 @@ public enum AnimatorVariables
     FreeHangClimbOverState,
     RightFootIKWeight,
     LeftFootIKWeight,
+    RightHandWeight,
+    LeftHandWeight
 }

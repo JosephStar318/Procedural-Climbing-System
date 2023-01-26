@@ -52,6 +52,7 @@ public class LedgeDetector : MonoBehaviour
     private Rigidbody rb;
 
     public bool IsBraced { get => isBraced; set => isBraced = value; }
+    public Vector3 ForwardCastHitPoint { get; private set; }
     public LayerMask ObstacleLayers { get => obstacleLayers; set => obstacleLayers = value; }
     public LayerMask ClimbableLayers { get => climbableLayers; set => climbableLayers = value; }
 
@@ -118,6 +119,7 @@ public class LedgeDetector : MonoBehaviour
             forwardHit = Physics.Raycast(forwardOrigin, forwardDirectionXZ, out forwardCastHit, 1f, ObstacleLayers);
             if (forwardHit)
             {
+                ForwardCastHitPoint = forwardCastHit.point;
                 forwardNormalXZ = Vector3.ProjectOnPlane(forwardCastHit.normal, Vector3.up);
                 groundAngle = Vector3.Angle(downCastHit.normal, Vector3.up);
                 wallAngle = Vector3.Angle(-forwardNormalXZ, forwardDirectionXZ);

@@ -189,6 +189,9 @@ public class ClimbingController : MonoBehaviour
                 Debug.Log("can't climb over");
             }
         }
+        //Vector3 s = transform.InverseTransformVector(animator.GetIKPosition(AvatarIKGoal.RightHand));
+        //Debug.DrawLine(transform.position, transform.position + s, Color.blue);
+        //Debug.DrawLine(transform.position, animator.GetIKPosition(AvatarIKGoal.RightHand), Color.green);
     }
 
     ///<summary>
@@ -404,7 +407,7 @@ public class ClimbingController : MonoBehaviour
                 animator.rootRotation = Quaternion.RotateTowards(animator.rootRotation, matchTargetRotationHanging, Time.fixedDeltaTime * 75);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
-                startNormalizedTime = 0;
+                startNormalizedTime = 0.1f;
                 targetNormalizedTime = 0.25f;
                 animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
             }
@@ -658,17 +661,21 @@ public class ClimbingController : MonoBehaviour
             if (animatorState == AnimatorState.Enter)
             {
                 animator.InterruptMatchTarget(false);
+                rb.isKinematic = false;
+                rb.useGravity = false;
             }
             else if (animatorState == AnimatorState.Update)
             {
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
                 startNormalizedTime = 0.1f;
-                targetNormalizedTime = 0.2f;
+                targetNormalizedTime = 0.3f;
                 animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
             }
             else if (animatorState == AnimatorState.Exit)
             {
+                rb.isKinematic = true;
+                rb.useGravity = true;
                 IsClimbMovementEnabled = true;
             }
         }
@@ -677,18 +684,22 @@ public class ClimbingController : MonoBehaviour
             if (animatorState == AnimatorState.Enter)
             {
                 animator.InterruptMatchTarget(false);
+                rb.isKinematic = false;
+                rb.useGravity = false;
             }
             else if (animatorState == AnimatorState.Update)
             {
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
                 startNormalizedTime = 0.1f;
-                targetNormalizedTime = 0.2f;
+                targetNormalizedTime = 0.3f;
                 animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
 
             }
             else if (animatorState == AnimatorState.Exit)
             {
+                rb.isKinematic = true;
+                rb.useGravity = true;
                 IsClimbMovementEnabled = true;
             }
         }
