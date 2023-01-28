@@ -43,14 +43,14 @@ ModelImporter:
       lastFrame: 41
       wrapMode: 0
       orientationOffsetY: 0
-      level: 0.25
+      level: 0.5
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
       loopTime: 1
       loopBlend: 1
       loopBlendOrientation: 0
-      loopBlendPositionY: 0
+      loopBlendPositionY: 1
       loopBlendPositionXZ: 0
       keepOriginalOrientation: 0
       keepOriginalPositionY: 1
@@ -73,7 +73,7 @@ ModelImporter:
             inWeight: 0
             outWeight: 0.33333334
           - serializedVersion: 3
-            time: 0.22119828
+            time: 0.122809604
             value: 1
             inSlope: 0
             outSlope: 0
@@ -82,8 +82,8 @@ ModelImporter:
             inWeight: 0.33333334
             outWeight: 0.33333334
           - serializedVersion: 3
-            time: 0.31940976
-            value: 0.0023498535
+            time: 0.20756283
+            value: 0
             inSlope: 0
             outSlope: 0
             tangentMode: 0

@@ -75,7 +75,7 @@ public class ClimbingController : MonoBehaviour
         playerController = GetComponent<PlayerController>();
         rb = GetComponent<Rigidbody>();
         ledgeDetector = GetComponent<LedgeDetector>();
-        IsClimbMovementEnabled = true;
+        IsClimbMovementEnabled = false;
     }
    
     private void FixedUpdate()
@@ -90,12 +90,12 @@ public class ClimbingController : MonoBehaviour
             ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging, matchedBodyPart);
 
             if (playerController.IsHanging || playerController.IsPlayerEnabled == false) return;
-            RaycastHit downCastHit = ledgeDetector.ReturnDownCastHit();
-            float jumpHeight = downCastHit.point.y - playerController.jumpPoint.y;
+            Vector3 downCastHit = ledgeDetector.DownCastHitPoint;
+            float jumpHeight = downCastHit.y - playerController.jumpPoint.y;
 
             if (playerController.IsFalling)
             {
-                if(transform.position.y + maxVaultHeight/2 < downCastHit.point.y)
+                if(transform.position.y + maxVaultHeight/2 < downCastHit.y)
                 {
 
                     if (GlobalSettings.Instance.debugMode) Debug.Log("Hanging while falling");
@@ -104,7 +104,7 @@ public class ClimbingController : MonoBehaviour
             }
             else if(playerController.IsGrounded == false)
             {
-                if(jumpHeight > maxVaultHeight && jumpHeight <= maxHangHeight && transform.position.y + maxVaultHeight / 2 < downCastHit.point.y)
+                if(jumpHeight > maxVaultHeight && jumpHeight <= maxHangHeight && transform.position.y + maxVaultHeight / 2 < downCastHit.y)
                 {
                     if (GlobalSettings.Instance.debugMode) Debug.Log("Hanging");
                     Hang();
@@ -117,11 +117,13 @@ public class ClimbingController : MonoBehaviour
             }
             else if (jumpHeight < maxStepHeight && jumpButtonPressed)
             {
+                //Step();
                 if (GlobalSettings.Instance.debugMode) Debug.Log("Doing Nothing");
             }
         }
 
     }
+
   
     private void OnAnimatorMove()
     {
@@ -161,13 +163,9 @@ public class ClimbingController : MonoBehaviour
         {
             moveVector.x = Mathf.Lerp(moveVector.x, 0, Time.deltaTime * 5);
             animator.SetFloat(HashManager.animatorHashDict[AnimatorVariables.SpeedX], moveVector.x);
-            if (ledgeDetector.CheckJumpableLedgeInMoveDirection(targetVector, 3f) == true)
+            if (ledgeDetector.CheckJumpableLedgeInMoveDirection(targetVector, out matchTargetPositionHoping, out matchTargetRotationHoping, matchedBodyPart) == true)
             {
-                if (grabbedLedge != ledgeDetector.ReturnDownCastHit().transform.gameObject)
-                {
-                    ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHoping, out matchTargetRotationHoping, matchedBodyPart);
-                    Hop();
-                }
+                 Hop();
             }
         }
 
@@ -189,9 +187,6 @@ public class ClimbingController : MonoBehaviour
                 Debug.Log("can't climb over");
             }
         }
-        //Vector3 s = transform.InverseTransformVector(animator.GetIKPosition(AvatarIKGoal.RightHand));
-        //Debug.DrawLine(transform.position, transform.position + s, Color.blue);
-        //Debug.DrawLine(transform.position, animator.GetIKPosition(AvatarIKGoal.RightHand), Color.green);
     }
 
     ///<summary>
@@ -203,6 +198,17 @@ public class ClimbingController : MonoBehaviour
         animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Vault]);
         playerController.DisablePlayerController();
     }
+
+
+    /// <summary>
+    /// Plays the step up animation
+    /// </summary>
+    private void Step()
+    {
+        animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.SteppingState], 0.1f);
+        playerController.DisablePlayerController();
+    }
+
 
     ///<summary>
     ///Plays the hanging animation
@@ -335,7 +341,10 @@ public class ClimbingController : MonoBehaviour
     ///</summary>
     private void OnJump(InputAction.CallbackContext context)
     {
-        jumpButtonPressed = context.ReadValueAsButton();
+        if(context.performed || context.canceled)
+        {
+            jumpButtonPressed = context.ReadValueAsButton();
+        }
     }
 
     ///<summary>
@@ -348,11 +357,8 @@ public class ClimbingController : MonoBehaviour
             if(playerController.IsHanging)
             {
                 animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Drop]);
-                playerController.IsHanging = false;
-                rb.isKinematic = false;
-                rb.AddForce(-transform.forward * 25, ForceMode.Acceleration);
             }
-            else if(ledgeDetector.CheckDropLedge(maxVaultHeight))
+            else if(ledgeDetector.CheckDropLedge())
             {
                 ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging, matchedBodyPart);
                 animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.DropToFreeHangState], 0.1f);
@@ -377,7 +383,6 @@ public class ClimbingController : MonoBehaviour
         {
             animator.rootRotation = Quaternion.RotateTowards(animator.rootRotation, matchRotation, Time.fixedDeltaTime * speedModifier);
         }
-
     }
 
     ///<summary>
@@ -404,6 +409,7 @@ public class ClimbingController : MonoBehaviour
             }
             else if (animatorState == AnimatorState.Exit)
             {
+                IsClimbMovementEnabled = true;
             }
         }
         else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.FallingToFreeHangState])
@@ -421,6 +427,35 @@ public class ClimbingController : MonoBehaviour
                 startNormalizedTime = 0.1f;
                 targetNormalizedTime = 0.25f;
                 animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+                IsClimbMovementEnabled = true;
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.BracedHangToDropState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                rb.isKinematic = false;
+                rb.AddForce(-transform.forward * 25, ForceMode.Acceleration);
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.FreeHangToDropState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                rb.isKinematic = false;
+                rb.AddForce(-transform.forward * 25, ForceMode.Acceleration);
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
             }
             else if (animatorState == AnimatorState.Exit)
             {
@@ -489,7 +524,7 @@ public class ClimbingController : MonoBehaviour
                 rb.isKinematic = false;
             }
         }
-        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.LandingState])
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.SteppingState])
         {
             if (animatorState == AnimatorState.Enter)
             {
@@ -500,6 +535,21 @@ public class ClimbingController : MonoBehaviour
             else if (animatorState == AnimatorState.Exit)
             {
                 playerController.EnablePlayerController();
+            }
+        }
+        else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.LandingState])
+        {
+            if (animatorState == AnimatorState.Enter)
+            {
+                playerController.IsHanging = false;
+            }
+            else if (animatorState == AnimatorState.Update)
+            {
+            }
+            else if (animatorState == AnimatorState.Exit)
+            {
+                playerController.EnablePlayerController();
+                IsClimbMovementEnabled = false;
                 grabbedLedge = null;
             }
         }
@@ -719,15 +769,16 @@ public class ClimbingController : MonoBehaviour
             if (animatorState == AnimatorState.Enter)
             {
                 animator.InterruptMatchTarget(false);
+                startNormalizedTime = 0.1f;
+                targetNormalizedTime = 0.45f;
             }
             else if (animatorState == AnimatorState.Update)
             {
+                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, startNormalizedTime, startNormalizedTime, asInfo.length);
+                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1, asInfo.length);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
-                startNormalizedTime = 0.1f;
-                targetNormalizedTime = 0.45f;
                 animator.MatchTarget(matchTargetPositionHanging, matchTargetRotationHanging, matchedBodyPart, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
-
             }
             else if (animatorState == AnimatorState.Exit)
             {

@@ -27,7 +27,10 @@ public static class HashManager
         AddToAnimatorHash(AnimatorVariables.FallingToBracedHangState, "Falling To Braced Hang");
         AddToAnimatorHash(AnimatorVariables.FallingToFreeHangState, "Falling To Free Hang");
         AddToAnimatorHash(AnimatorVariables.VaultingState, "Vaulting");
+        AddToAnimatorHash(AnimatorVariables.SteppingState, "Stepping");
         AddToAnimatorHash(AnimatorVariables.LandingState, "Landing");
+        AddToAnimatorHash(AnimatorVariables.BracedHangToDropState, "Braced Hang To Drop");
+        AddToAnimatorHash(AnimatorVariables.FreeHangToDropState, "Free Hang To Drop");
         AddToAnimatorHash(AnimatorVariables.BracedHangHopUpState, "Braced Hang Hop Up");
         AddToAnimatorHash(AnimatorVariables.BracedHangHopDownState, "Braced Hang Hop Down");
         AddToAnimatorHash(AnimatorVariables.BracedHangHopRightState, "Braced Hang Hop Right");
@@ -74,7 +77,10 @@ public enum AnimatorVariables
     FallingToBracedHangState,
     FallingToFreeHangState,
     VaultingState,
+    SteppingState,
     LandingState,
+    BracedHangToDropState,
+    FreeHangToDropState,
     BracedHangHopUpState,
     BracedHangHopDownState,
     BracedHangHopRightState,

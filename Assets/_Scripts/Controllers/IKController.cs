@@ -102,7 +102,7 @@ public class IKController : MonoBehaviour
     }
     private void Update()
     {
-        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHit.point) + handRayOffset;
+        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHitPoint) + handRayOffset;
         Vector3 localright = transform.InverseTransformPoint(rightHand.position);
         Vector3 localleft = transform.InverseTransformPoint(leftHand.position);
 
@@ -141,7 +141,7 @@ public class IKController : MonoBehaviour
     /// </summary>
     private void HandIK()
     {
-        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHit.point) + handRayOffset;
+        Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHitPoint) + handRayOffset;
         Vector3 localright = transform.InverseTransformPoint(rightHand.position);
         Vector3 localleft = transform.InverseTransformPoint(leftHand.position);
 
@@ -231,7 +231,7 @@ public class IKController : MonoBehaviour
         rightFootRotationIK = rightFoot.rotation;
         leftFootRotationIK = leftFoot.rotation;
 
-        if (Physics.Raycast(rightFoot.position + Vector3.up, Vector3.down, out rightFootRayHit, 1.3f, ledgeDetector.ObstacleLayers))
+        if (Physics.Raycast(rightFoot.position + Vector3.up, Vector3.down, out rightFootRayHit, 1.5f, ledgeDetector.ObstacleLayers))
         {
             rightFootPositionIK = rightFootRayHit.point;
             rightFootPositionIK.y += groundDistance;
@@ -241,7 +241,7 @@ public class IKController : MonoBehaviour
             animator.SetIKPosition(AvatarIKGoal.RightFoot, rightFootPositionIK);
             animator.SetIKRotation(AvatarIKGoal.RightFoot, rightFootRotationIK);
         }
-        if (Physics.Raycast(leftFoot.position + Vector3.up, Vector3.down, out leftFootRayHit, 1.3f, ledgeDetector.ObstacleLayers))
+        if (Physics.Raycast(leftFoot.position + Vector3.up, Vector3.down, out leftFootRayHit, 1.5f, ledgeDetector.ObstacleLayers))
         {
             leftFootPositionIK = leftFootRayHit.point;
             leftFootPositionIK.y += groundDistance;
