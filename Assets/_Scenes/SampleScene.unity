@@ -8332,7 +8332,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd02f3ebea37ff1439d2b26555bce7ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetVector: {x: 0, y: 0, z: 0}
   maxStepHeight: 0.5
   maxVaultHeight: 1.25
   maxHangHeight: 2.7
@@ -8395,7 +8394,7 @@ MonoBehaviour:
   mainCamera: {fileID: 2071576714}
   walkableLayers:
     serializedVersion: 2
-    m_Bits: 192
+    m_Bits: 193
 --- !u!114 &1111890719
 MonoBehaviour:
   m_ObjectHideFlags: 0

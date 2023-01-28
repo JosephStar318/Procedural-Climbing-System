@@ -13,12 +13,12 @@ public class ClimbingController : MonoBehaviour
     private LedgeDetector ledgeDetector;
 
     private Vector3 moveVector;
-    [SerializeField] private Vector3 targetVector;
-    private float cornerAngle;
+    private Vector3 targetVector;
     private bool isCorner;
     private bool jumpButtonPressed;
     private GameObject grabbedLedge;
     private AvatarTarget matchedBodyPart;
+
     [Header("Climb Settings")]
     [SerializeField] private float maxStepHeight = 0.5f;
     [SerializeField] private float maxVaultHeight = 2f;
@@ -39,7 +39,6 @@ public class ClimbingController : MonoBehaviour
     private Vector3 matchTargetPositionClimbOver;
     private Quaternion matchTargetRotationClimbOver;
 
-    private MatchTargetWeightMask weightMask = new MatchTargetWeightMask(Vector3.one, 1);
     private MatchTargetWeightMask noRotWeightMask = new MatchTargetWeightMask(Vector3.one, 0);
     private MatchTargetWeightMask ledgeWeightMask = new MatchTargetWeightMask(new Vector3(0, 1, 1), 0);
 
@@ -64,10 +63,6 @@ public class ClimbingController : MonoBehaviour
         PlayerInputHelper.OnMove -= OnMove;
 
         SMBEvent.OnSMBEvent -= OnSMBEvent;
-    }
-    private void OnDrawGizmos()
-    {
-
     }
     private void Start()
     {
@@ -140,7 +135,7 @@ public class ClimbingController : MonoBehaviour
     ///</summary>
     private void ClimbMovement()
     {
-        bool doesLedgeExist = ledgeDetector.CheckLedgeInMoveDirection(targetVector.x, out isCorner, out cornerAngle, out sideCastHit);
+        bool doesLedgeExist = ledgeDetector.CheckLedgeInMoveDirection(targetVector.x, out isCorner, out sideCastHit);
         if (IsClimbMovementEnabled == false) return;
 
         if (doesLedgeExist)

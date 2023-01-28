@@ -6,7 +6,6 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerController))]
 public class LedgeDetector : MonoBehaviour
 {
-    private PlayerController playerController;
     private CapsuleCollider capsuleCollider;
 
     [Header("Ledge Settings")]
@@ -41,7 +40,6 @@ public class LedgeDetector : MonoBehaviour
     private Vector3 leftCornerRayOrigin;
     private float maxSideHitDistance = 1f;
     private bool isBraced = false;
-    private Vector2 previousMoveVector;
 
     private RaycastHit downCastHit;
     private RaycastHit forwardCastHit;
@@ -51,8 +49,6 @@ public class LedgeDetector : MonoBehaviour
     private Vector3 endPosition;
     private Quaternion forwardNormalXZRotation;
 
-    private Animator animator;
-    private Rigidbody rb;
     private List<GameObject> anchorList = new List<GameObject>();
     public bool IsBraced { get => isBraced; set => isBraced = value; }
     public Vector3 ForwardCastHitPoint { get; private set; }
@@ -64,11 +60,7 @@ public class LedgeDetector : MonoBehaviour
 
     private void Start()
     {
-        playerController = GetComponent<PlayerController>();
         capsuleCollider = GetComponent<CapsuleCollider>();
-        animator = GetComponent<Animator>();
-        rb = GetComponent<Rigidbody>();
-
         jumpCheckerTransform.position = transform.position;
     }
     private void OnDrawGizmos()
@@ -258,11 +250,11 @@ public class LedgeDetector : MonoBehaviour
     /// <param name="cornerAngle">Angle of the corner ledge</param>
     /// <param name="sideHit">Player's holding point of the ledge</param>
     /// <returns>false if there is no ledge to continue</returns>
-    public bool CheckLedgeInMoveDirection(float moveDir, out bool isCorner, out float cornerAngle, out RaycastHit sideHit)
+    public bool CheckLedgeInMoveDirection(float moveDir, out bool isCorner, out RaycastHit sideHit)
     {
         bool isRightSideHit = false;
         bool isLeftSideHit = false;
-        cornerAngle = 0;
+        float cornerAngle = 0;
         sideHit = sideCastHit;
         isCorner = false;
         
@@ -388,6 +380,14 @@ public class LedgeDetector : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Checks ledges in the moveVector direction
+    /// </summary>
+    /// <param name="moveVector">move direction</param>
+    /// <param name="targetPos">If there is a ledge the match target position of the ledge</param>
+    /// <param name="targetRot">If there is a ledge the match target rotation of the ledge</param>
+    /// <param name="avatarTarget">Avatar target that is used to determine the target position</param>
+    /// <returns>true if there is a ledge</returns>
     public bool CheckJumpableLedgeInMoveDirection(Vector2 moveVector, out Vector3 targetPos, out Quaternion targetRot, AvatarTarget avatarTarget)
     {
         targetPos = Vector3.zero;
@@ -418,6 +418,11 @@ public class LedgeDetector : MonoBehaviour
         return false;
     }
 
+
+    /// <summary>
+    /// WIP
+    /// </summary>
+    /// <returns></returns>
     public bool CheckLedgeInLookDirection()
     {
         return true;

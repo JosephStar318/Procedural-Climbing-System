@@ -9,7 +9,7 @@ using UnityEngine.InputSystem.Interactions;
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
 {
-    #region Physic Related
+    #region Physic Related Variables
     [Header("Physics")]
     [SerializeField] private float jumpForce = 100f;
     [SerializeField] private float fallingHeightThreshold = 2f;
@@ -18,6 +18,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float walkSpeed = 1;
     [SerializeField] private float sprintSpeed = 2;
 
+    [Header("States")]
     [SerializeField] private bool isGrounded = true;
     [SerializeField] private bool isFalling = false;
     [SerializeField] private bool isHanging = false;
@@ -28,14 +29,14 @@ public class PlayerController : MonoBehaviour
     public Vector3 jumpPoint;
     #endregion
 
-    #region Utility
+    #region Utility Variables
     [Header("Utility")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private LayerMask walkableLayers;
 
     #endregion
 
-    #region Animator Related
+    #region Animator Related Variables
     private Animator animator;
 
     private float targetX;
@@ -140,6 +141,7 @@ public class PlayerController : MonoBehaviour
             transform.forward = Vector3.Lerp(transform.forward, rotationVector, Time.deltaTime);
         }
     }
+
     ///<summary>
     /// Checks if player is grounded and falling
     ///</summary>
@@ -198,7 +200,6 @@ public class PlayerController : MonoBehaviour
         rb.velocity = Vector3.zero;
     }
 
-
     #region Events
 
     ///<summary>
@@ -209,7 +210,6 @@ public class PlayerController : MonoBehaviour
         targetX = input.x;
         targetZ = input.y;
     }
-
 
     ///<summary>
     /// Triggered when input for sprint key is changed
