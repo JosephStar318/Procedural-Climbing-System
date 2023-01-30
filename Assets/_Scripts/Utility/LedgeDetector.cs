@@ -40,6 +40,7 @@ public class LedgeDetector : MonoBehaviour
     private Vector3 leftCornerRayOrigin;
     private float maxSideHitDistance = 1f;
     private bool isBraced = false;
+    private bool ledgeDetectionEnabled = true;
 
     private RaycastHit downCastHit;
     private RaycastHit forwardCastHit;
@@ -57,6 +58,7 @@ public class LedgeDetector : MonoBehaviour
     public Vector3 DownCastHitNormal { get; private set; }
     public LayerMask ObstacleLayers { get => obstacleLayers; set => obstacleLayers = value; }
     public LayerMask ClimbableLayers { get => climbableLayers; set => climbableLayers = value; }
+    public bool LedgeDetectionEnabled { get => ledgeDetectionEnabled; set => ledgeDetectionEnabled = value; }
 
     private void Start()
     {
@@ -75,7 +77,7 @@ public class LedgeDetector : MonoBehaviour
         Gizmos.DrawSphere(endPosition, 0.1f);
       
         Gizmos.color = Color.red;
-        Gizmos.DrawSphere(forwardCastHit.point, 0.1f);
+        Gizmos.DrawSphere(ForwardCastHitPoint, 0.1f);
         Gizmos.DrawSphere(leftCornerRayOrigin, 0.1f);
 
         Gizmos.color = Color.black;
@@ -113,6 +115,7 @@ public class LedgeDetector : MonoBehaviour
     /// <returns>true if ledge is detected</returns>
     public bool CanClimb(Transform originTransform)
     {
+        if (LedgeDetectionEnabled == false) return false;
         bool downHit;
         bool forwardHit;
         float groundAngle;
@@ -125,6 +128,7 @@ public class LedgeDetector : MonoBehaviour
         Vector3 downOrigin = originTransform.TransformPoint(climbOriginDown);
 
         Debug.DrawLine(downOrigin, downOrigin + Vector3.down, Color.red);
+
 
         downHit = Physics.SphereCast(downOrigin, 0.2f, downDirection, out downCastHit, climbOriginDown.y - minStepHeight, ClimbableLayers);
 
@@ -258,10 +262,10 @@ public class LedgeDetector : MonoBehaviour
         sideHit = sideCastHit;
         isCorner = false;
         
-        leftCornerRayOrigin = forwardCastHit.point + Quaternion.LookRotation(transform.right) * (leftSideRayOffset + new Vector3(-0.3f,0,0));
-        rightCornerRayOrigin = forwardCastHit.point + Quaternion.LookRotation(transform.right) * (rightSideRayOffset + new Vector3(-0.3f, 0, 0));
-        leftSideLedgeRayOrigin = forwardCastHit.point + Quaternion.LookRotation(transform.right) * leftSideRayOffset;
-        rightSideLedgeRayOrigin = forwardCastHit.point + Quaternion.LookRotation(transform.right) * rightSideRayOffset;
+        leftCornerRayOrigin = forwardCastHit.point + Quaternion.LookRotation(-ForwardCastHitNormal, DownCastHitNormal) * (leftSideRayOffset + new Vector3(0, 0, 0.3f));
+        rightCornerRayOrigin = forwardCastHit.point + Quaternion.LookRotation(-ForwardCastHitNormal, DownCastHitNormal) * (rightSideRayOffset + new Vector3(0, 0, 0.3f));
+        leftSideLedgeRayOrigin = forwardCastHit.point + Quaternion.LookRotation(-ForwardCastHitNormal, DownCastHitNormal) * leftSideRayOffset;
+        rightSideLedgeRayOrigin = forwardCastHit.point + Quaternion.LookRotation(-ForwardCastHitNormal, DownCastHitNormal) * rightSideRayOffset;
 
 
         if(moveDir > 0.5f)
@@ -367,10 +371,12 @@ public class LedgeDetector : MonoBehaviour
 
             if(CanClimb(obj.transform))
             {
+                Destroy(obj);
                 return true;
             }
             else
             {
+                Destroy(obj);
                 return false;
             }
         }
@@ -434,7 +440,7 @@ public class LedgeDetector : MonoBehaviour
     /// <returns>true is it is</returns>
     public bool IsLedgeBraced()
     {
-        bracedRayOrigin = ForwardCastHitPoint + forwardNormalXZRotation * braceDetectionRayOffset;
+        bracedRayOrigin = ForwardCastHitPoint + Quaternion.LookRotation(-ForwardCastHitNormal) * braceDetectionRayOffset;
         if(Physics.SphereCast(bracedRayOrigin, 0.2f, -ForwardCastHitNormal, out bracedCastHit, 1f, ObstacleLayers))
         {
             IsBraced = true;

@@ -189,6 +189,7 @@ public class PlayerController : MonoBehaviour
     {
         IsPlayerEnabled = true;
         rb.velocity = Vector3.zero;
+        Debug.Log("player enabled");
     }
 
     ///<summary>
@@ -198,6 +199,7 @@ public class PlayerController : MonoBehaviour
     {
         IsPlayerEnabled = false;
         rb.velocity = Vector3.zero;
+        Debug.Log("player disabled");
     }
 
     #region Events

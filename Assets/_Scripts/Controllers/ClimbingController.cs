@@ -20,6 +20,7 @@ public class ClimbingController : MonoBehaviour
     private AvatarTarget matchedBodyPart;
 
     [Header("Climb Settings")]
+    [SerializeField] private float stepHeight = 0.2f;
     [SerializeField] private float maxStepHeight = 0.5f;
     [SerializeField] private float maxVaultHeight = 2f;
     [SerializeField] private float maxHangHeight = 2.5f;
@@ -72,7 +73,15 @@ public class ClimbingController : MonoBehaviour
         ledgeDetector = GetComponent<LedgeDetector>();
         IsClimbMovementEnabled = false;
     }
-   
+    private void OnAnimatorMove()
+    {
+        if (animator.isMatchingTarget)
+            animator.ApplyBuiltinRootMotion();
+        else if (animator.GetCurrentAnimatorStateInfo(0).tagHash == HashManager.animatorHashDict[AnimatorVariables.ApplyRootMotionTag])
+        {
+            animator.ApplyBuiltinRootMotion();
+        }
+    }
     private void FixedUpdate()
     {
         if (playerController.IsHanging)
@@ -84,7 +93,11 @@ public class ClimbingController : MonoBehaviour
             //matching target to keep alligned with the wall
             ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging, matchedBodyPart);
 
-            if (playerController.IsHanging || playerController.IsPlayerEnabled == false) return;
+            if (playerController.IsHanging || playerController.IsPlayerEnabled == false) 
+            { 
+                return;
+            }
+
             Vector3 downCastHit = ledgeDetector.DownCastHitPoint;
             float jumpHeight = downCastHit.y - playerController.jumpPoint.y;
 
@@ -105,29 +118,23 @@ public class ClimbingController : MonoBehaviour
                     Hang();
                 }
             }
-            if (jumpHeight > maxStepHeight && jumpHeight <= maxVaultHeight && jumpButtonPressed)
+            else
             {
-                if (GlobalSettings.Instance.debugMode) Debug.Log($"Vaulting {jumpHeight}");
-                Vault();
-            }
-            else if (jumpHeight < maxStepHeight && jumpButtonPressed)
-            {
-                //Step();
-                if (GlobalSettings.Instance.debugMode) Debug.Log("Doing Nothing");
+                jumpHeight = downCastHit.y - transform.position.y;
+
+                if (jumpHeight > maxStepHeight && jumpHeight <= maxVaultHeight && targetVector.y > 0.5f)
+                {
+                    Vault();
+                    if (GlobalSettings.Instance.debugMode) Debug.Log($"Vaulting {jumpHeight}");
+                }
+                else if (jumpHeight > stepHeight && jumpHeight < maxStepHeight && targetVector.y > 0.5f)
+                {
+                    Step();
+                    if (GlobalSettings.Instance.debugMode) Debug.Log("Doing Nothing");
+                }
             }
         }
 
-    }
-
-  
-    private void OnAnimatorMove()
-    {
-        if (animator.isMatchingTarget)
-            animator.ApplyBuiltinRootMotion();
-        else if (animator.GetCurrentAnimatorStateInfo(0).tagHash == HashManager.animatorHashDict[AnimatorVariables.ApplyRootMotionTag])
-        {
-            animator.ApplyBuiltinRootMotion();
-        }
     }
 
     ///<summary>
@@ -189,9 +196,11 @@ public class ClimbingController : MonoBehaviour
     ///</summary>
     private void Vault()
     {
-        ledgeDetector.SetTargetMatchingToEndpoint(out matchTargetPositionVaulting, out matchTargetRotationVaulting);
-        animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Vault]);
-        playerController.DisablePlayerController();
+        if(animator.GetCurrentAnimatorStateInfo(0).shortNameHash != HashManager.animatorHashDict[AnimatorVariables.VaultingState])
+        {
+            ledgeDetector.SetTargetMatchingToEndpoint(out matchTargetPositionVaulting, out matchTargetRotationVaulting);
+            animator.SetTrigger(HashManager.animatorHashDict[AnimatorVariables.Vault]);
+        }
     }
 
 
@@ -200,8 +209,11 @@ public class ClimbingController : MonoBehaviour
     /// </summary>
     private void Step()
     {
-        animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.SteppingState], 0.1f);
-        playerController.DisablePlayerController();
+        if (animator.GetCurrentAnimatorStateInfo(0).shortNameHash != HashManager.animatorHashDict[AnimatorVariables.SteppingState])
+        {
+            ledgeDetector.SetTargetMatchingToEndpoint(out matchTargetPositionVaulting, out matchTargetRotationVaulting);
+            animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.SteppingState], 0.1f);
+        }
     }
 
 
@@ -357,6 +369,7 @@ public class ClimbingController : MonoBehaviour
             {
                 ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging, matchedBodyPart);
                 animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.DropToFreeHangState], 0.1f);
+                grabbedLedge = ledgeDetector.ReturnDownCastHit().transform.gameObject;
                 playerController.IsHanging = true;
                 playerController.DisablePlayerController();
                 rb.isKinematic = true;
@@ -503,6 +516,7 @@ public class ClimbingController : MonoBehaviour
             if (animatorState == AnimatorState.Enter)
             {
                 rb.isKinematic = true;
+                playerController.DisablePlayerController();
                 animator.InterruptMatchTarget(false);
             }
             else if (animatorState == AnimatorState.Update)
@@ -523,9 +537,15 @@ public class ClimbingController : MonoBehaviour
         {
             if (animatorState == AnimatorState.Enter)
             {
+                playerController.DisablePlayerController();
             }
             else if (animatorState == AnimatorState.Update)
             {
+                if (animator.IsInTransition(0)) return;
+                if (animator.isMatchingTarget) return;
+                startNormalizedTime = 0.33f;
+                targetNormalizedTime = 0.6f;
+                animator.MatchTarget(matchTargetPositionVaulting, matchTargetRotationVaulting, AvatarTarget.RightFoot, noRotWeightMask, startNormalizedTime, targetNormalizedTime);
             }
             else if (animatorState == AnimatorState.Exit)
             {
@@ -536,16 +556,16 @@ public class ClimbingController : MonoBehaviour
         {
             if (animatorState == AnimatorState.Enter)
             {
+                playerController.EnablePlayerController();
                 playerController.IsHanging = false;
+                IsClimbMovementEnabled = false;
+                grabbedLedge = null;
             }
             else if (animatorState == AnimatorState.Update)
             {
             }
             else if (animatorState == AnimatorState.Exit)
             {
-                playerController.EnablePlayerController();
-                IsClimbMovementEnabled = false;
-                grabbedLedge = null;
             }
         }
         else if (asInfo.shortNameHash == HashManager.animatorHashDict[AnimatorVariables.BracedHangingBlendState])
@@ -763,13 +783,18 @@ public class ClimbingController : MonoBehaviour
         {
             if (animatorState == AnimatorState.Enter)
             {
+                ledgeDetector.LedgeDetectionEnabled = false;
                 animator.InterruptMatchTarget(false);
                 startNormalizedTime = 0.1f;
                 targetNormalizedTime = 0.45f;
             }
             else if (animatorState == AnimatorState.Update)
             {
-                MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, startNormalizedTime, startNormalizedTime, asInfo.length);
+                if (ledgeDetector.IsLedgeBraced() == false)
+                    animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Braced], false);
+                else
+                    animator.SetBool(HashManager.animatorHashDict[AnimatorVariables.Braced], true);
+
                 MatchRotation(matchTargetRotationHanging, asInfo.normalizedTime, targetNormalizedTime, 1, asInfo.length);
                 if (animator.IsInTransition(0)) return;
                 if (animator.isMatchingTarget) return;
@@ -777,6 +802,7 @@ public class ClimbingController : MonoBehaviour
             }
             else if (animatorState == AnimatorState.Exit)
             {
+                ledgeDetector.LedgeDetectionEnabled = true;
             }
         }
     }
