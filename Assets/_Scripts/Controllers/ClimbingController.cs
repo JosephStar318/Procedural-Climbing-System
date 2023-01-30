@@ -370,7 +370,6 @@ public class ClimbingController : MonoBehaviour
                 ledgeDetector.SetTargetMatchingToLedge(out matchTargetPositionHanging, out matchTargetRotationHanging, matchedBodyPart);
                 animator.CrossFade(HashManager.animatorHashDict[AnimatorVariables.DropToFreeHangState], 0.1f);
                 grabbedLedge = ledgeDetector.ReturnDownCastHit().transform.gameObject;
-                playerController.IsHanging = true;
                 playerController.DisablePlayerController();
                 rb.isKinematic = true;
             }
@@ -803,6 +802,7 @@ public class ClimbingController : MonoBehaviour
             else if (animatorState == AnimatorState.Exit)
             {
                 ledgeDetector.LedgeDetectionEnabled = true;
+                playerController.IsHanging = true;
             }
         }
     }

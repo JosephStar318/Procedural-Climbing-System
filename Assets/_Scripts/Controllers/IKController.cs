@@ -100,6 +100,10 @@ public class IKController : MonoBehaviour
             Gizmos.DrawRay(leftFootRayOrigin, leftFoot.up);
         }
     }
+
+    /// <summary>
+    /// Updates positions for gizmos
+    /// </summary>
     private void Update()
     {
         Vector3 localOffsettedHit = transform.InverseTransformPoint(ledgeDetector.ForwardCastHitPoint) + handRayOffset;
